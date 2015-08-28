@@ -1,3 +1,15 @@
+// from: http://stackoverflow.com/a/14810714
+Object.defineProperty(Object.prototype, 'map', {
+    value: function(f, ctx) {
+        ctx = ctx || this;
+        var self = this, result = {};
+        Object.keys(self).forEach(function(k) {
+            result[k] = f.call(ctx, self[k], k, self);
+        });
+        return result;
+    }
+});
+
 var belasting = function () {
     var box1Schijven = [
         {from: 0, to: 19822, ratio: 0.3650},
@@ -24,18 +36,28 @@ var belasting = function () {
         return typeof(rate.ratio) === "function" ? rate.ratio(woz) : woz * rate.ratio;
     };
 
-    var inkomstenbelasting = function(inkomen, hypotheekrente, wozWaarde) {
-        return box1(inkomen - Math.max(hypotheekrente - wozWaarde, 0));
-    };
-
-    var taxRelief = function(income, paidMortgageInterest, wozValue) {
-        return box1(income) - box1(income - Math.max(paidMortgageInterest - eigenwoningforfait(wozValue), 0));
+    var taxRelief = function(incomes, paidMortgageInterest, wozValue) {
+        var hypotheekrenteaftrek = Math.max(paidMortgageInterest - eigenwoningforfait(wozValue), 0);
+        if(incomes.length == 1) {
+            return box1(income) - box1(Math.max(income - hypotheekrenteaftrek, 0));
+        } else if(incomes.length == 2) {
+            var adjusted = incomes.slice();
+            if(incomes[0] < incomes[1]) {
+                var diff = Math.min(incomes[1] - incomes[0], hypotheekrenteaftrek);
+                adjusted[0] -= diff + (hypotheekrenteaftrek - diff) / 2;
+                adjusted[1] -= (hypotheekrenteaftrek - diff) / 2;
+            } else {
+                var diff = Math.min(incomes[0] - incomes[1], hypotheekrenteaftrek);
+                adjusted[0] -= (hypotheekrenteaftrek - diff) / 2;
+                adjusted[1] -= diff + (hypotheekrenteaftrek - diff) / 2;
+            }
+            return box1(incomes[0]) + box1(incomes[1]) - box1(adjusted[0]) - box1(adjusted[1]);
+        }
     };
 
     return {
         box1: box1,
         eigenwoningforfait: eigenwoningforfait,
-        inkomstenbelasting: inkomstenbelasting,
         taxRelief: taxRelief,
     };
 }();
@@ -74,21 +96,15 @@ var mortgage = function() {
 // out: initial + recurring + opportunity + net proceeds = total  - for both rent + buy
 // out: monthly rent
 
-var calculate = function(input) {
+var calculateBuy = function(input) {
     var debt = input.aankoopWaarde * input.hypotheekDeel,
         annuity = mortgage.annuity(debt, input.hypotheekRente, input.hypotheekDuur),
-        rent = {
-            initial: 0,
-            recurring: 0,
-            opportunity: 0,
-            proceeds: 0,
-        },
         buy = {
             initial: 0,
             recurring: 0,
             opportunity: 0,
             proceeds: 0,
-            taxRelief: 0,
+            total: 0,
         };
 
     // Buying costs.
@@ -102,7 +118,12 @@ var calculate = function(input) {
 
     for(var year = 0; year < input.duration; year++) {
         var yearPaidInterest = 0,
-            yearRecurringCosts = input.aankoopWaarde * input.ozbTarief + input.rioolheffingEigenaar;
+            yearRecurringCosts = input.aankoopWaarde * input.ozbTarief + input.rioolheffingEigenaar,
+            // investment return at end of year.
+            yearInvestmentReturn = Math.pow(1 + input.investeringsOpbrengst, input.duration - year - 1) - 1;
+
+        yearRecurringCosts += input.aankoopWaarde * input.opstalVerzekering;
+        yearRecurringCosts += input.aankoopWaarde * input.maintenance;
 
         for(var month = 0; month < 12; month++) {
             var monthPaidInterest = debt * input.hypotheekRente / 12;
@@ -112,35 +133,84 @@ var calculate = function(input) {
             buy.opportunity += annuity * (Math.pow(1 + input.investeringsOpbrengst, input.duration - (year + month / 12)) - 1);
         }
 
-        buy.recurring += yearRecurringCosts;
-        buy.opportunity += yearRecurringCosts * (Math.pow(1 + input.investeringsOpbrengst, input.duration - year) - 1);
-
         // @todo take multiple incomes into account
-        buy.taxRelief -= belasting.taxRelief(input.incomes[0], yearPaidInterest, input.aankoopWaarde);
+        yearRecurringCosts -= belasting.taxRelief(input.incomes, yearPaidInterest, input.aankoopWaarde);
+
+        buy.recurring += yearRecurringCosts;
+        buy.opportunity += yearRecurringCosts * yearInvestmentReturn;
     }
 
     buy.proceeds += debt;
 
-    buy.total = buy.initial + buy.recurring + buy.opportunity + buy.proceeds + buy.taxRelief;
+    buy.total = buy.initial + buy.recurring + buy.opportunity + buy.proceeds;
 
+    return buy;
+};
+
+var calculateRent = function(input, buy) {
+    var rent = {
+        initial: 0,
+        recurring: 0,
+        opportunity: 0,
+        proceeds: 0,
+        total: 0,
+        rent: 1000,
+    };
+
+    // We'll calculate with a fictious rate of 1000 per month. As all expenses
+    // are ratios, we'll ratio the values by ``buy.total / rent.total``.
+
+    // Security deposit.
+    var deposit = rent.rent * input.rentSecurityDeposit,
+        brokerFee = rent.rent * 12 * input.rentBrokerFee;
+    rent.initial += deposit + brokerFee;
+    rent.opportunity += (deposit + brokerFee) * (Math.pow(1 + input.investeringsOpbrengst, input.duration) - 1);
+    rent.proceeds -= deposit;
+
+    for(var year = 0; year < input.duration; year++) {
+        var yearRent = rent.rent * Math.pow(1 + input.rentGrowth, year);
+        for(var month = 0; month < 12; month++) {
+            var monthRecurring = yearRent;
+
+            rent.recurring += yearRent;
+            rent.opportunity += yearRent * (Math.pow(1 + input.investeringsOpbrengst, input.duration - (year + month / 12)) - 1);
+        }
+    }
+
+    rent.total = rent.initial + rent.recurring + rent.opportunity + rent.proceeds;
+
+    // Ratio all values.
+    var ratio = buy.total / rent.total;
+    return rent.map(function(v) { return v * ratio; });
+};
+
+
+var calculate = function(input) {
+    var buy = calculateBuy(input),
+        rent = calculateRent(input, buy);
     return {
         rent: rent,
         buy: buy,
     };
-}
+};
 
 console.table(calculate({
     aankoopWaarde: 250000,
-    duration: 10,
+    duration: 8,
     hypotheekDeel: 1.03,  // ratio
     hypotheekRente: 0.0215,
     hypotheekDuur: 30,
-    stijgingHuizenprijzen: 0.025,
+    stijgingHuizenprijzen: 0.02,
     ozbTarief: 0.001331,
     rioolheffingEigenaar: 105,
-    koopKosten: 0.04,
+    koopKosten: 0.03,
     verkoopKosten: 0.04,
-    investeringsOpbrengst: 0.06,
+    investeringsOpbrengst: 0.04,
     incomes: [48000, 50000],
+    rentGrowth: 0.02,
+    opstalVerzekering: 0.0005,  // jaarlijks
+    maintenance: 0.005, // ratio, jaarlijks
+    rentSecurityDeposit: 3, // aantal maanden
+    rentBrokerFee: 0.0833, // ratio of first year's rent
 }));
 
