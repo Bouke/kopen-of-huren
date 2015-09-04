@@ -125,15 +125,16 @@ var calculateBuy = function(input) {
         yearRecurringCosts += input.aankoopWaarde * input.opstalVerzekering;
         yearRecurringCosts += input.aankoopWaarde * input.maintenance;
 
-        for(var month = 0; month < 12; month++) {
-            var monthPaidInterest = debt * input.hypotheekRente / 12;
-            yearPaidInterest += monthPaidInterest;
-            debt -= (annuity - monthPaidInterest);
-            buy.recurring += annuity;
-            buy.opportunity += annuity * (Math.pow(1 + input.investeringsOpbrengst, input.duration - (year + month / 12)) - 1);
+        if(year < input.hypotheekDuur) {
+            for(var month = 0; month < 12; month++) {
+                var monthPaidInterest = debt * input.hypotheekRente / 12;
+                yearPaidInterest += monthPaidInterest;
+                debt -= (annuity - monthPaidInterest);
+                buy.recurring += annuity;
+                buy.opportunity += annuity * (Math.pow(1 + input.investeringsOpbrengst, input.duration - (year + month / 12)) - 1);
+            }
         }
 
-        // @todo take multiple incomes into account
         yearRecurringCosts -= belasting.taxRelief(input.incomes, yearPaidInterest, input.aankoopWaarde);
 
         buy.recurring += yearRecurringCosts;
