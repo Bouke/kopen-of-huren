@@ -195,7 +195,7 @@ var calculate = function(input) {
     };
 };
 
-console.table(calculate({
+var input = {
     aankoopWaarde: 250000,
     duration: 8,
     hypotheekDeel: 1.03,  // ratio
@@ -213,5 +213,26 @@ console.table(calculate({
     maintenance: 0.005, // ratio, jaarlijks
     rentSecurityDeposit: 3, // aantal maanden
     rentBrokerFee: 0.0833, // ratio of first year's rent
-}));
+};
 
+var formatter = new Intl.NumberFormat('nl-nl', {maximumFractionDigits: 0}).format;
+
+var tabulate = function(input, output) {
+    var data = [
+        [output.rent.initial, output.buy.initial],
+        [output.rent.recurring, output.buy.recurring],
+        [output.rent.opportunity, output.buy.opportunity],
+        [output.rent.proceeds, output.buy.proceeds],
+        [output.rent.total, output.buy.total],
+    ];
+
+    d3.select("#details").selectAll("tbody tr,tfoot tr")
+        .data(data).selectAll("td")
+            .data(function(d) { return d; })
+            .text(formatter);
+
+    d3.select("#details thead th")
+        .text("Op basis van " + input.duration + " jaar");
+}
+
+tabulate(input, calculate(input));
