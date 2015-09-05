@@ -217,6 +217,10 @@ var input = {
 
 var formatter = new Intl.NumberFormat('nl-nl', {maximumFractionDigits: 0}).format;
 
+var labelize = function(input, output) {
+    d3.select("#per-month").data([output.rent.rent]).text(formatter);
+};
+
 var tabulate = function(input, output) {
     var data = [
         [output.rent.initial, output.buy.initial],
@@ -233,6 +237,8 @@ var tabulate = function(input, output) {
 
     d3.select("#details thead th")
         .text("Op basis van " + input.duration + " jaar");
-}
+};
 
-tabulate(input, calculate(input));
+var output = calculate(input);
+tabulate(input, output);
+labelize(input, output);
