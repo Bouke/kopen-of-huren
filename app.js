@@ -227,7 +227,7 @@ var tabulate = function(input, output) {
     ];
 
     d3.select("#details").selectAll("tbody tr,tfoot tr")
-        .data(data).selectAll("td")
+        .data(data).selectAll("td:not(:first-child)")
             .data(function(d) { return d; })
             .text(formatter);
 
