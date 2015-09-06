@@ -10,6 +10,17 @@ Object.defineProperty(Object.prototype, 'map', {
     }
 });
 
+Object.defineProperty(Object.prototype, 'copy', {
+    value: function(f, ctx) {
+        ctx = ctx || this;
+        var self = this, result = {};
+        Object.keys(this).forEach(function(k) {
+            result[k] = self[k];
+        });
+        return result;
+    }
+});
+
 var belasting = function () {
     var box1Schijven = [
         {from: 0, to: 19822, ratio: 0.3650},
@@ -242,3 +253,10 @@ var tabulate = function(input, output) {
 var output = calculate(input);
 tabulate(input, output);
 labelize(input, output);
+
+var purchasePriceOptions = d3.range(0, 500001, 50000).map(function(value) {
+    var copy = input.copy();
+    copy.aankoopWaarde = value;
+    return [value, calculate(copy).rent.rent];
+});
+console.table(purchasePriceOptions);
