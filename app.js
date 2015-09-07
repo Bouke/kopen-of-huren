@@ -10,16 +10,39 @@ Object.defineProperty(Object.prototype, 'map', {
     }
 });
 
-Object.defineProperty(Object.prototype, 'copy', {
-    value: function(f, ctx) {
-        ctx = ctx || this;
-        var self = this, result = {};
-        Object.keys(this).forEach(function(k) {
-            result[k] = self[k];
-        });
-        return result;
-    }
-});
+// from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
+if (!Object.assign) {
+    Object.defineProperty(Object, 'assign', {
+        enumerable: false,
+        configurable: true,
+        writable: true,
+        value: function(target) {
+            'use strict';
+            if (target === undefined || target === null) {
+                throw new TypeError('Cannot convert first argument to object');
+            }
+
+            var to = Object(target);
+            for (var i = 1; i < arguments.length; i++) {
+                var nextSource = arguments[i];
+                if (nextSource === undefined || nextSource === null) {
+                    continue;
+                }
+                nextSource = Object(nextSource);
+
+                var keysArray = Object.keys(Object(nextSource));
+                for (var nextIndex = 0, len = keysArray.length; nextIndex < len; nextIndex++) {
+                    var nextKey = keysArray[nextIndex];
+                    var desc = Object.getOwnPropertyDescriptor(nextSource, nextKey);
+                    if (desc !== undefined && desc.enumerable) {
+                        to[nextKey] = nextSource[nextKey];
+                    }
+                }
+            }
+            return to;
+        }
+    });
+}
 
 var belasting = function () {
     var box1Schijven = [
@@ -255,8 +278,70 @@ tabulate(input, output);
 labelize(input, output);
 
 var purchasePriceOptions = d3.range(0, 500001, 50000).map(function(value) {
-    var copy = input.copy();
+    var copy = Object.assign(input, {});
     copy.aankoopWaarde = value;
     return [value, calculate(copy).rent.rent];
 });
 console.table(purchasePriceOptions);
+
+
+var margin = {top: 20, right: 20, bottom: 30, left: 75},
+    viewBoxWidth = 555,
+    viewBoxHeight = Math.round(viewBoxWidth / 960 * 500),
+    width = viewBoxWidth - margin.left - margin.right,
+    height = viewBoxHeight - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .1);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+    // .innerTickSize(-height)
+    // .outerTickSize(0)
+    // .tickPadding(10);
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+    // .innerTickSize(-width)
+    // .outerTickSize(0)
+    // .tickPadding(10);
+
+var svg = d3.select("#purchasePrice")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
+    .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var gx = svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")");
+
+var gy = svg.append("g")
+    .attr("class", "y axis");
+
+// render
+
+x.domain(purchasePriceOptions.map(function(d) { return d[0]; }));
+y.domain([0, d3.max(purchasePriceOptions, function(d) { return d[1]; })]);
+gx.call(xAxis);
+gy.call(yAxis);
+
+var bars = svg.selectAll(".bar")
+    .data(purchasePriceOptions);
+
+bars.enter().append("rect").attr("class", "bar");
+bars.exit().remove();
+
+bars
+    .attr("x", function(d) { return x(d[0]); })
+    .attr("width", x.rangeBand())
+    .attr("y", function(d) { return y(d[1]); })
+    .attr("height", function(d) { return height - y(d[1]); });
+
+
