@@ -100,8 +100,9 @@ var mortgage = function() {
     // rente per jaar
     // duur in jaren
     var annuity = function(lening, rente, duur) {
-        rente /= 12;
         duur *= 12;
+        if(rente === 0) { return lening / duur; }
+        rente /= 12;
         return lening / ((1 - Math.pow(1 / (1 + rente), duur)) / rente);
     };
 
@@ -121,14 +122,6 @@ var mortgage = function() {
         interest: interest,
     };
 }();
-
-// var data = d3.range(0, hypotheekDuur).map(function(d) {
-
-// });
-
-// in: all configuration parameters
-// out: initial + recurring + opportunity + net proceeds = total  - for both rent + buy
-// out: monthly rent
 
 var calculateBuy = function(input) {
     var debt = input.aankoopWaarde * input.hypotheekDeel,
@@ -275,8 +268,8 @@ var tabulate = function(input, output) {
 
 var graph = function(id) {
     var margin = {top: 20, right: 20, bottom: 30, left: 75},
-        viewBoxWidth = 555,
-        viewBoxHeight = Math.round(viewBoxWidth / 960 * 500),
+        viewBoxWidth = 490,
+        viewBoxHeight = 125,
         width = viewBoxWidth - margin.left - margin.right,
         height = viewBoxHeight - margin.top - margin.bottom;
 
@@ -330,22 +323,34 @@ var graph = function(id) {
     }
 }
 
-
 var output = calculate(input);
 tabulate(input, output);
 labelize(input, output);
 
 var purchasePriceOptions = d3.range(0, 500001, 50000).map(function(value) {
-    var copy = Object.assign(input, {});
+    var copy = Object.assign({}, input);
     copy.aankoopWaarde = value;
     return [value, calculate(copy).rent.rent];
 });
 var purchasePriceGraph = graph("#purchasePrice").update(purchasePriceOptions);
 
-var mortgageRentOptions = d3.range(0, 0.051, 0.005).map(function(value) {
-    var copy = Object.assign(input, {});
-    copy.hypotheekRente = value;
-    return [value, calculate(copy)];
+var durationOptions = d3.range(1, 26, 1).map(function(value) {
+    var copy = Object.assign({}, input);
+    copy.duration = value;
+    return [value, calculate(copy).rent.rent];
 });
-console.log(mortgageRentOptions);
+var durationGraph = graph("#duration").update(durationOptions);
+
+var mortgageRentOptions = d3.range(0, 0.051, 0.005).map(function(value) {
+    var copy = Object.assign({}, input);
+    copy.hypotheekRente = value;
+    return [value, calculate(copy).rent.rent];
+});
 var mortgageRentGraph = graph("#mortgageRent").update(mortgageRentOptions);
+
+var investmentReturnOptions = d3.range(0, 0.101, 0.01).map(function(value) {
+    var copy = Object.assign({}, input);
+    copy.investeringsOpbrengst = value;
+    return [value, calculate(copy).rent.rent];
+});
+var investmentReturnGraph = graph("#investmentReturn").update(investmentReturnOptions);
