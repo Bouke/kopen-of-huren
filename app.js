@@ -266,12 +266,15 @@ var tabulate = function(input, output) {
         .text("Op basis van " + input.duration + " jaar");
 };
 
-var graph = function(id, selectedValue) {
+
+var graph = function(options) {
     var margin = {top: 20, right: 20, bottom: 30, left: 75},
         viewBoxWidth = 490,
         viewBoxHeight = 125,
         width = viewBoxWidth - margin.left - margin.right,
         height = viewBoxHeight - margin.top - margin.bottom;
+
+    var selectedValue = options.selectedValue;
 
     var x = d3.scale.ordinal()
         .rangeRoundBands([0, width], .1);
@@ -287,7 +290,7 @@ var graph = function(id, selectedValue) {
         .scale(y)
         .orient("left");
 
-    var svg = d3.select(id)
+    var svg = d3.select(options.id)
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
@@ -357,30 +360,46 @@ var output = calculate(input);
 tabulate(input, output);
 labelize(input, output);
 
+// @todo; the x-scale needs to coordinate with the generating function on which
+// data-points to render. linear/pow scales do not know how to render bar charts
+// (rangeBands). Set domain first, then generate data based on them?
+
 var purchasePriceOptions = d3.range(0, 1000001, 25000).map(function(value) {
     var copy = Object.assign({}, input);
     copy.aankoopWaarde = value;
     return [value, calculate(copy).rent.rent];
 });
-var purchasePriceGraph = graph("#purchasePrice", 250000).update(purchasePriceOptions);
+var purchasePriceGraph = graph({
+    id: "#purchasePrice",
+    selectedValue: 250000
+}).update(purchasePriceOptions);
 
 var durationOptions = d3.range(1, 41, 1).map(function(value) {
     var copy = Object.assign({}, input);
     copy.duration = value;
     return [value, calculate(copy).rent.rent];
 });
-var durationGraph = graph("#duration", 1).update(durationOptions);
+var durationGraph = graph({
+    id: "#duration",
+    selectedValue: 1
+}).update(durationOptions);
 
 var mortgageRentOptions = d3.range(0, 0.051, 0.00125).map(function(value) {
     var copy = Object.assign({}, input);
     copy.hypotheekRente = value;
     return [value, calculate(copy).rent.rent];
 });
-var mortgageRentGraph = graph("#mortgageRent", 0).update(mortgageRentOptions);
+var mortgageRentGraph = graph({
+    id: "#mortgageRent",
+    selectedValue: 0
+}).update(mortgageRentOptions);
 
 var investmentReturnOptions = d3.range(0, 0.101, 0.0025).map(function(value) {
     var copy = Object.assign({}, input);
     copy.investeringsOpbrengst = value;
     return [value, calculate(copy).rent.rent];
 });
-var investmentReturnGraph = graph("#investmentReturn", 0).update(investmentReturnOptions);
+var investmentReturnGraph = graph({
+    id: "#investmentReturn",
+    selectedValue: 0
+}).update(investmentReturnOptions);
