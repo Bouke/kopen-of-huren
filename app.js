@@ -292,7 +292,8 @@ var graph = function(id, selectedValue) {
             .attr("height", height + margin.top + margin.bottom)
             .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
         .append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .style("pointer-events", "all");
     svg.append("g").attr("class", "bars");
 
     var gx = svg.append("g")
@@ -343,6 +344,11 @@ var graph = function(id, selectedValue) {
             svg.on("mousemove", null);
         });
     });
+
+    svg.append('rect')
+        .attr('class', 'click-capture')
+        .style('visibility', 'hidden')
+        .attr({x: 0, y: 0, width: width, height: height});
 
     return {update: update};
 }
