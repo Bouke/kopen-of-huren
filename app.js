@@ -266,7 +266,7 @@ var tabulate = function(input, output) {
         .text("Op basis van " + input.duration + " jaar");
 };
 
-var graph = function(id) {
+var graph = function(id, selectedValue) {
     var margin = {top: 20, right: 20, bottom: 30, left: 75},
         viewBoxWidth = 490,
         viewBoxHeight = 125,
@@ -293,6 +293,7 @@ var graph = function(id) {
             .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
         .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    svg.append("g").attr("class", "bars");
 
     var gx = svg.append("g")
         .attr("class", "x axis")
@@ -301,56 +302,79 @@ var graph = function(id) {
     var gy = svg.append("g")
         .attr("class", "y axis");
 
-    return {
-        update: function(data) {
-            x.domain(data.map(function(d) { return d[0]; }));
-            y.domain([0, d3.max(data, function(d) { return d[1]; })]);
-            gx.call(xAxis);
-            gy.call(yAxis);
+    var slider = svg.append("g").attr("class", "value");
+    slider.append("path").attr("d", "M-5.5,-2.5v10l6,5.5l6,-5.5v-10z");
+    slider.append("text").attr({y: 20, dy: ".5em"});
 
-            var bars = svg.selectAll(".bar")
-                .data(data);
+    var update = function(data) {
+        x.domain(data.map(function(d) { return d[0]; }));
+        y.domain([0, d3.max(data, function(d) { return d[1]; })]);
+        gx.call(xAxis);
+        gy.call(yAxis);
 
-            bars.enter().append("rect").attr("class", "bar");
-            bars.exit().remove();
+        var bars = svg.select(".bars").selectAll(".bar")
+            .data(data);
 
-            bars
-                .attr("x", function(d) { return x(d[0]); })
-                .attr("width", x.rangeBand())
-                .attr("y", function(d) { return y(d[1]); })
-                .attr("height", function(d) { return height - y(d[1]); });
-        }
-    }
+        bars.enter().append("rect").attr("class", "bar");
+        bars.exit().remove();
+
+        bars
+            .attr("x", function(d) { return x(d[0]); })
+            .attr("width", x.rangeBand())
+            .attr("y", function(d) { return y(d[1]); })
+            .attr("height", function(d) { return height - y(d[1]); });
+
+        renderSlider(selectedValue);
+    };
+    var renderSlider = function() {
+        slider.select("text").text(selectedValue);
+        slider.attr("transform", "translate("+(x(selectedValue) + x.rangeBand() / 2)+", "+(height-8)+")");
+    };
+
+    svg.on("mousedown", function(e) {
+        d3.event.preventDefault();
+        var mousemove = function() {
+            var sx = d3.mouse(this)[0];
+            slider.attr("transform", "translate("+sx+","+(height-8)+")");
+        }.bind(this);
+        mousemove();
+        svg.on("mousemove", mousemove);
+        svg.on("mouseup", function() {
+            svg.on("mousemove", null);
+        });
+    });
+
+    return {update: update};
 }
 
 var output = calculate(input);
 tabulate(input, output);
 labelize(input, output);
 
-var purchasePriceOptions = d3.range(0, 500001, 50000).map(function(value) {
+var purchasePriceOptions = d3.range(0, 1000001, 25000).map(function(value) {
     var copy = Object.assign({}, input);
     copy.aankoopWaarde = value;
     return [value, calculate(copy).rent.rent];
 });
-var purchasePriceGraph = graph("#purchasePrice").update(purchasePriceOptions);
+var purchasePriceGraph = graph("#purchasePrice", 250000).update(purchasePriceOptions);
 
-var durationOptions = d3.range(1, 26, 1).map(function(value) {
+var durationOptions = d3.range(1, 41, 1).map(function(value) {
     var copy = Object.assign({}, input);
     copy.duration = value;
     return [value, calculate(copy).rent.rent];
 });
-var durationGraph = graph("#duration").update(durationOptions);
+var durationGraph = graph("#duration", 1).update(durationOptions);
 
-var mortgageRentOptions = d3.range(0, 0.051, 0.005).map(function(value) {
+var mortgageRentOptions = d3.range(0, 0.051, 0.00125).map(function(value) {
     var copy = Object.assign({}, input);
     copy.hypotheekRente = value;
     return [value, calculate(copy).rent.rent];
 });
-var mortgageRentGraph = graph("#mortgageRent").update(mortgageRentOptions);
+var mortgageRentGraph = graph("#mortgageRent", 0).update(mortgageRentOptions);
 
-var investmentReturnOptions = d3.range(0, 0.101, 0.01).map(function(value) {
+var investmentReturnOptions = d3.range(0, 0.101, 0.0025).map(function(value) {
     var copy = Object.assign({}, input);
     copy.investeringsOpbrengst = value;
     return [value, calculate(copy).rent.rent];
 });
-var investmentReturnGraph = graph("#investmentReturn").update(investmentReturnOptions);
+var investmentReturnGraph = graph("#investmentReturn", 0).update(investmentReturnOptions);
