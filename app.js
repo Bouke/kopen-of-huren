@@ -316,9 +316,13 @@ var graph = function(options) {
     var update = function() {
         var rangeBand = Math.floor(width / points) - 1,
             innerWidth = (rangeBand + 1) * points,
-            leadingPadding = Math.floor((width - innerWidth) / 2 + rangeBand / 2);
-
-        xScale.range([leadingPadding, leadingPadding + innerWidth]);
+            leadingPadding = Math.floor((width - innerWidth) / 2 + rangeBand / 2),
+            interval = [leadingPadding, leadingPadding + innerWidth];
+        if(xScale.rangeRoundBands) {
+            xScale.rangeRoundBands(interval);
+        } else {
+            xScale.range(interval);
+        }
 
         var data = d3.range(leadingPadding, leadingPadding + innerWidth + 1, rangeBand + 1).map(function(px) {
             var x = xScale.invert(px);
@@ -353,7 +357,7 @@ var graph = function(options) {
     svg.on("mousedown", function(e) {
         d3.event.preventDefault();
         var mousemove = function() {
-            var sx = Math.min(Math.max(d3.mouse(this)[0], xScale.range()[0]), xScale.range()[1]);
+            var sx = d3.mouse(this)[0];
             selectedValue = xScale.invert(sx);
             renderSlider();
             options.setValue(selectedValue);
@@ -375,15 +379,21 @@ var graph = function(options) {
     return {update: update};
 }
 
-// @todo; the x-scale needs to coordinate with the generating function on which
-// data-points to render. linear/pow scales do not know how to render bar charts
-// (rangeBands). Set domain first, then generate data based on them?
+var durationScale = d3.scale.ordinal().domain(d3.range(1,41));
+durationScale.invert = function(value) {
+    var x = Math.round((value - this.rangeExtent()[0]) / this.rangeBand());
+
+    // clamp
+    x = Math.max(0, Math.min(x, this.range().length - 1));
+
+    return this.domain()[x];
+};
 
 var graphs = {
     purchasePrice: graph({
         id: "#purchasePrice",
         selectedValue: input.aankoopWaarde,
-        xScale: d3.scale.log().domain([50e3, 3e6]),
+        xScale: d3.scale.log().domain([50e3, 3e6]).clamp(true),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.aankoopWaarde = value;
@@ -394,10 +404,24 @@ var graphs = {
             update();
         }
     }),
+    duration: graph({
+        id: "#duration",
+        selectedValue: input.duration,
+        xScale: durationScale,
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.duration = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            input.duration = value;
+            update();
+        }
+    }),
     mortgageRent: graph({
         id: "#mortgageRent",
         selectedValue: input.hypotheekRente,
-        xScale: d3.scale.linear().domain([0, 0.1]),
+        xScale: d3.scale.linear().domain([0, 0.1]).clamp(true),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.hypotheekRente = value;
@@ -411,7 +435,7 @@ var graphs = {
     housePriceIncrease: graph({
         id: "#housePriceIncrease",
         selectedValue: input.stijgingHuizenprijzen,
-        xScale: d3.scale.linear().domain([-0.05, 0.1]),
+        xScale: d3.scale.linear().domain([-0.05, 0.1]).clamp(true),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.stijgingHuizenprijzen = value;
@@ -425,7 +449,7 @@ var graphs = {
     investmentReturn: graph({
         id: "#investmentReturn",
         selectedValue: input.investeringsOpbrengst,
-        xScale: d3.scale.linear().domain([0, 0.1]),
+        xScale: d3.scale.linear().domain([0, 0.1]).clamp(true),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.investeringsOpbrengst = value;
@@ -449,15 +473,3 @@ var update = function() {
 };
 
 update();
-
-// var durationGraph = graph({
-//     id: "#duration",
-//     selectedValue: 1,
-//     xScale: d3.scale.ordinal().domain(d3.range(1,41)),
-//     y: function(value) {
-//         var copy = Object.assign({}, input);
-//         copy.duration = value;
-//         return [value, calculate(copy).rent.rent];
-//     }
-// }).update();
-
