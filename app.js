@@ -276,17 +276,19 @@ var graph = function(options) {
 
     var selectedValue = options.selectedValue;
 
-    if(!options.x) { return {update: function(){}}; }
+    if(!options.y) { return {update: function(){}}; }
 
-    var y = d3.scale.linear()
+    var xScale = options.xScale;
+
+    var yScale = d3.scale.linear()
         .range([height, 0]);
 
     var xAxis = d3.svg.axis()
-        .scale(options.x)
+        .scale(xScale)
         .orient("bottom");
 
     var yAxis = d3.svg.axis()
-        .scale(y)
+        .scale(yScale)
         .orient("left");
 
     var svg = d3.select(options.id)
@@ -307,17 +309,24 @@ var graph = function(options) {
 
     var slider = svg.append("g").attr("class", "value");
     slider.append("path").attr("d", "M-5.5,-2.5v10l6,5.5l6,-5.5v-10z");
-    slider.append("text").attr({y: 20, dy: ".5em"});
+    slider.append("text").attr({y: 30, dy: ".5em"});
 
-    var rangeBand = 0;
+    var points = 40;
 
-    var update = function(data) {
-        rangeBand = Math.floor(width / data.length) - 1;
-        var innerWidth = (rangeBand + 1) * data.length,
+    var update = function() {
+        var rangeBand = Math.floor(width / points) - 1,
+            innerWidth = (rangeBand + 1) * points,
             leadingPadding = Math.floor((width - innerWidth) / 2 + rangeBand / 2);
 
-        options.x.range([leadingPadding, leadingPadding + innerWidth]);
-        y.domain([0, d3.max(data, function(d) { return d[1]; })]);
+        xScale.range([leadingPadding, leadingPadding + innerWidth]);
+
+        var data = d3.range(leadingPadding, leadingPadding + innerWidth + 1, rangeBand + 1).map(function(px) {
+            var x = xScale.invert(px);
+            return [x, options.y(x)];
+        });
+        console.table(data);
+
+        yScale.domain([0, d3.max(data, function(d) { return d[1]; })]);
         gx.call(xAxis);
         gy.call(yAxis);
 
@@ -328,31 +337,35 @@ var graph = function(options) {
         bars.exit().remove();
 
         bars
-            .attr("x", function(d) { return options.x(d[0]); })
+            .attr("x", function(d) { return xScale(d[0]) - rangeBand / 2; })
             .attr("width", rangeBand)
-            .attr("y", function(d) { return y(d[1]); })
-            .attr("height", function(d) { return height - y(d[1]); });
+            .attr("y", function(d) { return yScale(d[1]); })
+            .attr("height", function(d) { return height - yScale(d[1]); });
 
         renderSlider(selectedValue);
+
+        return this;
     };
     var renderSlider = function() {
         slider.select("text").text(selectedValue);
-        slider.attr("transform", "translate("+(options.x(selectedValue) + rangeBand / 2)+", "+(height-8)+")");
+        slider.attr("transform", "translate("+xScale(selectedValue)+", "+(height-8)+")");
+        console.log(selectedValue);
     };
 
     svg.on("mousedown", function(e) {
         d3.event.preventDefault();
         var mousemove = function() {
-            var sx = d3.mouse(this)[0];
-            slider.attr("transform", "translate("+sx+","+(height-8)+")");
-            selectedValue = options.x.invert(sx);
-            slider.select("text").text(selectedValue);
+            var sx = Math.min(Math.max(d3.mouse(this)[0], xScale.range()[0]), xScale.range()[1]);
+            selectedValue = xScale.invert(sx);
+            renderSlider();
         }.bind(this);
         mousemove();
         svg.on("mousemove", mousemove);
-        svg.on("mouseup", function() {
+        var clear = function() {
             svg.on("mousemove", null);
-        });
+        };
+        svg.on("mouseup", clear);
+        svg.on("mouseout", clear);
     });
 
     svg.append('rect')
@@ -371,16 +384,22 @@ labelize(input, output);
 // data-points to render. linear/pow scales do not know how to render bar charts
 // (rangeBands). Set domain first, then generate data based on them?
 
-var purchasePriceOptions = d3.range(50e3, 3e6, 50e3).map(function(value) {
-    var copy = Object.assign({}, input);
-    copy.aankoopWaarde = value;
-    return [value, calculate(copy).rent.rent];
-});
-var purchasePriceGraph = graph({
-    id: "#purchasePrice",
-    selectedValue: 250000,
-    x: d3.scale.log().domain([50e3, 3e6])
-}).update(purchasePriceOptions);
+var graphs = {
+    purchasePriceGraph: graph({
+        id: "#purchasePrice",
+        selectedValue: 250000,
+        xScale: d3.scale.log().domain([50e3, 3e6]),
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.aankoopWaarde = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            input.aankoopWaarde = value;
+            // update all graphs!
+        }
+    }).update(),
+};
 
 var durationOptions = d3.range(1, 41, 1).map(function(value) {
     var copy = Object.assign({}, input);
