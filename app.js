@@ -225,7 +225,7 @@ var calculate = function(input) {
 var input = {
     aankoopWaarde: 250000,
     duration: 8,
-    hypotheekDeel: 1.03,  // ratio
+    hypotheekDeel: 1.03,  // ratio -- @todo, de kosten voor eigen inleg als opportunity cost!
     hypotheekRente: 0.0215,
     hypotheekDuur: 30,
     stijgingHuizenprijzen: 0.02,
@@ -405,6 +405,20 @@ var graphs = {
         },
         setValue: function(value) {
             input.hypotheekRente = value;
+            update();
+        }
+    }),
+    housePriceIncrease: graph({
+        id: "#housePriceIncrease",
+        selectedValue: input.stijgingHuizenprijzen,
+        xScale: d3.scale.linear().domain([-0.05, 0.1]),
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.stijgingHuizenprijzen = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            input.stijgingHuizenprijzen = value;
             update();
         }
     }),
