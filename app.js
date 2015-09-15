@@ -276,14 +276,13 @@ var graph = function(options) {
 
     var selectedValue = options.selectedValue;
 
-    var x = d3.scale.ordinal()
-        .rangeRoundBands([0, width], .1);
+    if(!options.x) { return {update: function(){}}; }
 
     var y = d3.scale.linear()
         .range([height, 0]);
 
     var xAxis = d3.svg.axis()
-        .scale(x)
+        .scale(options.x)
         .orient("bottom");
 
     var yAxis = d3.svg.axis()
@@ -310,8 +309,14 @@ var graph = function(options) {
     slider.append("path").attr("d", "M-5.5,-2.5v10l6,5.5l6,-5.5v-10z");
     slider.append("text").attr({y: 20, dy: ".5em"});
 
+    var rangeBand = 0;
+
     var update = function(data) {
-        x.domain(data.map(function(d) { return d[0]; }));
+        rangeBand = Math.floor(width / data.length) - 1;
+        var innerWidth = (rangeBand + 1) * data.length,
+            leadingPadding = Math.floor((width - innerWidth) / 2 + rangeBand / 2);
+
+        options.x.range([leadingPadding, leadingPadding + innerWidth]);
         y.domain([0, d3.max(data, function(d) { return d[1]; })]);
         gx.call(xAxis);
         gy.call(yAxis);
@@ -323,8 +328,8 @@ var graph = function(options) {
         bars.exit().remove();
 
         bars
-            .attr("x", function(d) { return x(d[0]); })
-            .attr("width", x.rangeBand())
+            .attr("x", function(d) { return options.x(d[0]); })
+            .attr("width", rangeBand)
             .attr("y", function(d) { return y(d[1]); })
             .attr("height", function(d) { return height - y(d[1]); });
 
@@ -332,7 +337,7 @@ var graph = function(options) {
     };
     var renderSlider = function() {
         slider.select("text").text(selectedValue);
-        slider.attr("transform", "translate("+(x(selectedValue) + x.rangeBand() / 2)+", "+(height-8)+")");
+        slider.attr("transform", "translate("+(options.x(selectedValue) + rangeBand / 2)+", "+(height-8)+")");
     };
 
     svg.on("mousedown", function(e) {
@@ -340,6 +345,8 @@ var graph = function(options) {
         var mousemove = function() {
             var sx = d3.mouse(this)[0];
             slider.attr("transform", "translate("+sx+","+(height-8)+")");
+            selectedValue = options.x.invert(sx);
+            slider.select("text").text(selectedValue);
         }.bind(this);
         mousemove();
         svg.on("mousemove", mousemove);
@@ -364,14 +371,15 @@ labelize(input, output);
 // data-points to render. linear/pow scales do not know how to render bar charts
 // (rangeBands). Set domain first, then generate data based on them?
 
-var purchasePriceOptions = d3.range(0, 1000001, 25000).map(function(value) {
+var purchasePriceOptions = d3.range(0, 3e6, 50000).map(function(value) {
     var copy = Object.assign({}, input);
     copy.aankoopWaarde = value;
     return [value, calculate(copy).rent.rent];
 });
 var purchasePriceGraph = graph({
     id: "#purchasePrice",
-    selectedValue: 250000
+    selectedValue: 250000,
+    x: d3.scale.pow().exponent(0.5).domain([0, 3e6])
 }).update(purchasePriceOptions);
 
 var durationOptions = d3.range(1, 41, 1).map(function(value) {
@@ -381,7 +389,8 @@ var durationOptions = d3.range(1, 41, 1).map(function(value) {
 });
 var durationGraph = graph({
     id: "#duration",
-    selectedValue: 1
+    selectedValue: 1,
+    x: d3.scale.ordinal()
 }).update(durationOptions);
 
 var mortgageRentOptions = d3.range(0, 0.051, 0.00125).map(function(value) {
