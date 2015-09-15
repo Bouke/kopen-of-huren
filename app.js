@@ -324,7 +324,6 @@ var graph = function(options) {
             var x = xScale.invert(px);
             return [x, options.y(x)];
         });
-        console.table(data);
 
         yScale.domain([0, d3.max(data, function(d) { return d[1]; })]);
         gx.call(xAxis);
@@ -349,7 +348,6 @@ var graph = function(options) {
     var renderSlider = function() {
         slider.select("text").text(selectedValue);
         slider.attr("transform", "translate("+xScale(selectedValue)+", "+(height-8)+")");
-        console.log(selectedValue);
     };
 
     svg.on("mousedown", function(e) {
@@ -358,6 +356,7 @@ var graph = function(options) {
             var sx = Math.min(Math.max(d3.mouse(this)[0], xScale.range()[0]), xScale.range()[1]);
             selectedValue = xScale.invert(sx);
             renderSlider();
+            options.setValue(selectedValue);
         }.bind(this);
         mousemove();
         svg.on("mousemove", mousemove);
@@ -376,18 +375,14 @@ var graph = function(options) {
     return {update: update};
 }
 
-var output = calculate(input);
-tabulate(input, output);
-labelize(input, output);
-
 // @todo; the x-scale needs to coordinate with the generating function on which
 // data-points to render. linear/pow scales do not know how to render bar charts
 // (rangeBands). Set domain first, then generate data based on them?
 
 var graphs = {
-    purchasePriceGraph: graph({
+    purchasePrice: graph({
         id: "#purchasePrice",
-        selectedValue: 250000,
+        selectedValue: input.aankoopWaarde,
         xScale: d3.scale.log().domain([50e3, 3e6]),
         y: function(value) {
             var copy = Object.assign({}, input);
@@ -396,38 +391,59 @@ var graphs = {
         },
         setValue: function(value) {
             input.aankoopWaarde = value;
-            // update all graphs!
+            update();
         }
-    }).update(),
+    }),
+    mortgageRent: graph({
+        id: "#mortgageRent",
+        selectedValue: input.hypotheekRente,
+        xScale: d3.scale.linear().domain([0, 0.1]),
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.hypotheekRente = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            input.hypotheekRente = value;
+            update();
+        }
+    }),
+    investmentReturn: graph({
+        id: "#investmentReturn",
+        selectedValue: input.investeringsOpbrengst,
+        xScale: d3.scale.linear().domain([0, 0.1]),
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.investeringsOpbrengst = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            input.investeringsOpbrengst = value;
+            update();
+        }
+    }),
 };
 
-var durationOptions = d3.range(1, 41, 1).map(function(value) {
-    var copy = Object.assign({}, input);
-    copy.duration = value;
-    return [value, calculate(copy).rent.rent];
-});
-var durationGraph = graph({
-    id: "#duration",
-    selectedValue: 1,
-    x: d3.scale.ordinal()
-}).update(durationOptions);
+var update = function() {
+    var output = calculate(input);
+    tabulate(input, output);
+    labelize(input, output);
 
-var mortgageRentOptions = d3.range(0, 0.051, 0.00125).map(function(value) {
-    var copy = Object.assign({}, input);
-    copy.hypotheekRente = value;
-    return [value, calculate(copy).rent.rent];
-});
-var mortgageRentGraph = graph({
-    id: "#mortgageRent",
-    selectedValue: 0
-}).update(mortgageRentOptions);
+    Object.keys(graphs).forEach(function(key) {
+        graphs[key].update();
+    });
+};
 
-var investmentReturnOptions = d3.range(0, 0.101, 0.0025).map(function(value) {
-    var copy = Object.assign({}, input);
-    copy.investeringsOpbrengst = value;
-    return [value, calculate(copy).rent.rent];
-});
-var investmentReturnGraph = graph({
-    id: "#investmentReturn",
-    selectedValue: 0
-}).update(investmentReturnOptions);
+update();
+
+// var durationGraph = graph({
+//     id: "#duration",
+//     selectedValue: 1,
+//     xScale: d3.scale.ordinal().domain(d3.range(1,41)),
+//     y: function(value) {
+//         var copy = Object.assign({}, input);
+//         copy.duration = value;
+//         return [value, calculate(copy).rent.rent];
+//     }
+// }).update();
+
