@@ -338,8 +338,8 @@ var graph = function(options) {
         bars
             .attr("x", function(d) { return xScale(d[0]) - rangeBand / 2; })
             .attr("width", rangeBand)
-            .attr("y", function(d) { return yScale(d[1]); })
-            .attr("height", function(d) { return height - yScale(d[1]); });
+            .attr("y", function(d) { return Math.min(yScale(0), yScale(d[1])); })
+            .attr("height", function(d) { return Math.abs(height - yScale(d[1])); });
 
         renderSlider(selectedValue);
 
