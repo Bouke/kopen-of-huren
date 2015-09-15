@@ -371,7 +371,7 @@ labelize(input, output);
 // data-points to render. linear/pow scales do not know how to render bar charts
 // (rangeBands). Set domain first, then generate data based on them?
 
-var purchasePriceOptions = d3.range(0, 3e6, 50000).map(function(value) {
+var purchasePriceOptions = d3.range(50e3, 3e6, 50e3).map(function(value) {
     var copy = Object.assign({}, input);
     copy.aankoopWaarde = value;
     return [value, calculate(copy).rent.rent];
@@ -379,7 +379,7 @@ var purchasePriceOptions = d3.range(0, 3e6, 50000).map(function(value) {
 var purchasePriceGraph = graph({
     id: "#purchasePrice",
     selectedValue: 250000,
-    x: d3.scale.pow().exponent(0.5).domain([0, 3e6])
+    x: d3.scale.log().domain([50e3, 3e6])
 }).update(purchasePriceOptions);
 
 var durationOptions = d3.range(1, 41, 1).map(function(value) {
