@@ -268,7 +268,7 @@ var tabulate = function(input, output) {
 
 
 var graph = function(options) {
-    var margin = {top: 20, right: 20, bottom: 30, left: 75},
+    var margin = {top: 20, right: 20, bottom: 38, left: 75},
         viewBoxWidth = 490,
         viewBoxHeight = 125,
         width = viewBoxWidth - margin.left - margin.right,
@@ -289,7 +289,8 @@ var graph = function(options) {
 
     var yAxis = d3.svg.axis()
         .scale(yScale)
-        .orient("left");
+        .orient("left")
+        .ticks(4);
 
     var svg = d3.select(options.id)
             .attr("width", width + margin.left + margin.right)
@@ -299,10 +300,11 @@ var graph = function(options) {
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
             .style("pointer-events", "all");
     svg.append("g").attr("class", "bars");
+    svg.append("rect").attr({class: "slot", x: 0.5, y: height + 0.5, width: width-1, height: 4, rx: 2, ry: 2})
 
     var gx = svg.append("g")
         .attr("class", "x axis")
-        .attr("transform", "translate(0," + height + ")");
+        .attr("transform", "translate(0," + (height + 7) + ")");
 
     var gy = svg.append("g")
         .attr("class", "y axis");
@@ -352,7 +354,7 @@ var graph = function(options) {
     var renderSlider = function() {
         var formatter = xAxis.tickFormat() ? xAxis.tickFormat() : d3.format();
         slider.select("text").text(formatter(selectedValue));
-        slider.attr("transform", "translate("+xScale(selectedValue)+", "+(height-8)+")");
+        slider.attr("transform", "translate("+xScale(selectedValue)+", "+(height-1)+")");
     };
 
     svg.on("mousedown", function(e) {
