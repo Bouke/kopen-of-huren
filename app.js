@@ -283,7 +283,7 @@ var graph = function(options) {
     var yScale = d3.scale.linear()
         .range([height, 0]);
 
-    var xAxis = d3.svg.axis()
+    var xAxis = (options.xAxis || d3.svg.axis())
         .scale(xScale)
         .orient("bottom");
 
@@ -350,7 +350,8 @@ var graph = function(options) {
         return this;
     };
     var renderSlider = function() {
-        slider.select("text").text(selectedValue);
+        var formatter = xAxis.tickFormat() ? xAxis.tickFormat() : d3.format();
+        slider.select("text").text(formatter(selectedValue));
         slider.attr("transform", "translate("+xScale(selectedValue)+", "+(height-8)+")");
     };
 
@@ -394,6 +395,7 @@ var graphs = {
         id: "#purchasePrice",
         selectedValue: input.aankoopWaarde,
         xScale: d3.scale.log().domain([50e3, 3e6]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format(",.1s")).tickValues([100e3, 200e3, 1e6, 2e6]),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.aankoopWaarde = value;
@@ -408,6 +410,7 @@ var graphs = {
         id: "#duration",
         selectedValue: input.duration,
         xScale: durationScale,
+        xAxis: d3.svg.axis().tickValues(d3.range(10, 41, 10)),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.duration = value;
@@ -421,7 +424,8 @@ var graphs = {
     mortgageRent: graph({
         id: "#mortgageRent",
         selectedValue: input.hypotheekRente,
-        xScale: d3.scale.linear().domain([0, 0.1]).clamp(true),
+        xScale: d3.scale.linear().domain([0, 0.15001]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format(".1%")).ticks(4),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.hypotheekRente = value;
@@ -435,7 +439,8 @@ var graphs = {
     housePriceIncrease: graph({
         id: "#housePriceIncrease",
         selectedValue: input.stijgingHuizenprijzen,
-        xScale: d3.scale.linear().domain([-0.05, 0.1]).clamp(true),
+        xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format(".1%")).ticks(5),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.stijgingHuizenprijzen = value;
@@ -449,7 +454,8 @@ var graphs = {
     investmentReturn: graph({
         id: "#investmentReturn",
         selectedValue: input.investeringsOpbrengst,
-        xScale: d3.scale.linear().domain([0, 0.1]).clamp(true),
+        xScale: d3.scale.linear().domain([-0.1, 0.2]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format(".1%")).ticks(7),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.investeringsOpbrengst = value;
