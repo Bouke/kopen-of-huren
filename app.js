@@ -331,7 +331,7 @@ var graph = function(options) {
             return [x, options.y(x)];
         });
 
-        yScale.domain([0, d3.max(data, function(d) { return d[1]; })]);
+        yScale.domain([0, Math.max(100, d3.max(data, function(d) { return d[1]; }))]);
         gx.call(xAxis);
         gy.call(yAxis);
 
@@ -352,7 +352,7 @@ var graph = function(options) {
         return this;
     };
     var renderSlider = function() {
-        var formatter = xAxis.tickFormat() ? xAxis.tickFormat() : d3.format();
+        var formatter = options.sliderFormat || xAxis.tickFormat() || d3.format();
         slider.select("text").text(formatter(selectedValue));
         slider.attr("transform", "translate("+xScale(selectedValue)+", "+(height-1)+")");
     };
@@ -361,9 +361,8 @@ var graph = function(options) {
         d3.event.preventDefault();
         var mousemove = function() {
             var sx = d3.mouse(this)[0];
-            selectedValue = xScale.invert(sx);
+            selectedValue = options.setValue(xScale.invert(sx));
             renderSlider();
-            options.setValue(selectedValue);
         }.bind(this);
         mousemove();
         svg.on("mousemove", mousemove);
@@ -397,15 +396,17 @@ var graphs = {
         id: "#purchasePrice",
         selectedValue: input.aankoopWaarde,
         xScale: d3.scale.log().domain([50e3, 3e6]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format(",.1s")).tickValues([100e3, 200e3, 1e6, 2e6]),
+        xAxis: d3.svg.axis().tickFormat(d3.format("s")).tickValues([100e3, 200e3, 1e6, 2e6]),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.aankoopWaarde = value;
             return calculate(copy).rent.rent;
         },
         setValue: function(value) {
+            value = Math.round(value / 1000) * 1000;
             input.aankoopWaarde = value;
             update();
+            return value;
         }
     }),
     duration: graph({
@@ -421,51 +422,61 @@ var graphs = {
         setValue: function(value) {
             input.duration = value;
             update();
+            return value;
         }
     }),
     mortgageRent: graph({
         id: "#mortgageRent",
         selectedValue: input.hypotheekRente,
         xScale: d3.scale.linear().domain([0, 0.15001]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format(".1%")).ticks(4),
+        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(4),
+        sliderFormat: d3.format(".2%"),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.hypotheekRente = value;
             return calculate(copy).rent.rent;
         },
         setValue: function(value) {
+            value = Math.round(value * 1e4) / 1e4;
             input.hypotheekRente = value;
             update();
+            return value;
         }
     }),
     housePriceIncrease: graph({
         id: "#housePriceIncrease",
         selectedValue: input.stijgingHuizenprijzen,
         xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format(".1%")).ticks(5),
+        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
+        sliderFormat: d3.format(".2%"),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.stijgingHuizenprijzen = value;
             return calculate(copy).rent.rent;
         },
         setValue: function(value) {
+            value = Math.round(value * 1e4) / 1e4;
             input.stijgingHuizenprijzen = value;
             update();
+            return value;
         }
     }),
     investmentReturn: graph({
         id: "#investmentReturn",
         selectedValue: input.investeringsOpbrengst,
         xScale: d3.scale.linear().domain([-0.1, 0.2]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format(".1%")).ticks(7),
+        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(7),
+        sliderFormat: d3.format(".2%"),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy.investeringsOpbrengst = value;
             return calculate(copy).rent.rent;
         },
         setValue: function(value) {
+            value = Math.round(value * 1e4) / 1e4;
             input.investeringsOpbrengst = value;
             update();
+            return value;
         }
     }),
 };
