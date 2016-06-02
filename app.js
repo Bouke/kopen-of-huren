@@ -242,7 +242,10 @@ var input = {
     rentBrokerFee: 0.0833, // ratio of first year's rent
 };
 
-var formatter = new Intl.NumberFormat('nl-nl', {maximumFractionDigits: 0}).format;
+var formatter = function(value) {
+    // based upon http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript#comment22014829_14428340
+    return (value < 0 ? "-" : "") + "€" + Math.abs(value).toFixed(0).replace(/(\d)(?=(\d{3})+(?:\.\d+)?$)/g, "$1.");
+}
 
 var labelize = function(input, output) {
     d3.select("#per-month").data([output.rent.rent]).text(formatter);
