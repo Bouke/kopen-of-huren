@@ -149,7 +149,7 @@ var calculateBuy = function(input) {
             // investment return at end of year.
             yearInvestmentReturn = Math.pow(1 + input.investeringsOpbrengst, input.duration - year - 1) - 1;
 
-        yearRecurringCosts += input.aankoopWaarde * input.opstalVerzekering;
+        yearRecurringCosts += input.aankoopWaarde * input.insurance;
         yearRecurringCosts += input.aankoopWaarde * input.maintenance;
 
         if(year < input.hypotheekDuur) {
@@ -235,8 +235,8 @@ var input = {
     verkoopKosten: 0.04,
     investeringsOpbrengst: 0.04,
     incomes: [48000, 50000],
-    rentGrowth: 0.02,
-    opstalVerzekering: 0.0005,  // jaarlijks
+    rentGrowth: 0.02, // jaarlijkse stijging van huurprijzen
+    insurance: 0.0005,  // jaarlijks bedrag opstalverzekering
     maintenance: 0.005, // ratio, jaarlijks
     rentSecurityDeposit: 3, // aantal maanden
     rentBrokerFee: 0.0833, // ratio of first year's rent
@@ -443,6 +443,40 @@ var graphs = {
             return value;
         }
     }),
+    income0: graph({
+        id: "#income0",
+        selectedValue: input.incomes[0],
+        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.incomes[0] = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            value = Math.round(value / 1e3) * 1e3;
+            input.incomes[0] = value;
+            update();
+            return value;
+        }
+    }),
+    income1: graph({
+        id: "#income1",
+        selectedValue: input.incomes[1],
+        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.incomes[1] = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            value = Math.round(value / 1e3) * 1e3;
+            input.incomes[1] = value;
+            update();
+            return value;
+        }
+    }),
     housePriceIncrease: graph({
         id: "#housePriceIncrease",
         selectedValue: input.stijgingHuizenprijzen,
@@ -479,6 +513,24 @@ var graphs = {
             return value;
         }
     }),
+    rentGrowth: graph({
+        id: "#rentGrowth",
+        selectedValue: input.rentGrowth,
+        xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
+        sliderFormat: d3.format(".2%"),
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy.rentGrowth = value;
+            return calculate(copy).rent.rent;
+        },
+        setValue: function(value) {
+            value = Math.round(value * 1e4) / 1e4;
+            input.rentGrowth = value;
+            update();
+            return value;
+        }
+    }),
 };
 
 var update = function() {
@@ -492,3 +544,8 @@ var update = function() {
 };
 
 update();
+
+window.addEventListener("scroll", function() {
+    var offset = window.scrollY;
+    d3.select("#calculation").style("padding-top", offset+"px");
+});
