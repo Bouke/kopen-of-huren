@@ -281,7 +281,7 @@ var graph = function(options) {
     var xScale = options.xScale;
 
     var yScale = d3.scale.linear()
-        .range([height, 0]);
+        .range([height, 0]).clamp(true);
 
     var xAxis = (options.xAxis || d3.svg.axis())
         .scale(xScale)
