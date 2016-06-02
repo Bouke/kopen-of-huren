@@ -43,6 +43,31 @@
             .value text {
                 text-anchor: middle;
             }
+
+            .outcome {
+                font-weight: bold;
+                text-align: center;
+                font-size: 1.1em;
+            }
+            .label-outcome {
+                display: block;
+                margin: .5em 0;
+                padding: 1em 0;
+            }
+            .label-outcome .amount {
+                font-size: 2.4em;
+            }
+            .label-outcome .per-month {
+                margin-left: .5em;
+                display: inline-block;
+                text-align: left;
+                font-weight: normal;
+            }
+
+            #details th:not(:first-child),
+            #details td:not(:first-child) {
+                text-align: right;
+            }
         </style>
         <script src="//oss.maxcdn.com/d3js/3.5.6/d3.min.js" charset="utf-8"></script>
     </head>
@@ -148,8 +173,20 @@
 
                     <p>De berekeningen zijn gebaseerd op cijfers van de Belastingdienst uit 2015. Aan deze berekeningen kunnen geen rechten ontleend worden. Deze calculator is geïnspireerd door <a href="http://www.nytimes.com/interactive/2014/upshot/buy-rent-calculator.html">Is It Better to Rent or Buy</a>, verschenen in het katern The Upshot van The New York Times.</p>
                 </div>
-                <div class="col-md-4">
-                    <h2><span class="label label-success" id="per-month"></span> <small>per maand</small></h2>
+                <div class="col-md-4" id="calculation">
+                    <p class="outcome" id="outcome-positive">
+                        Als je een vergelijkbaar huis kunt<br>
+                        huren voor voor minder dan...
+                        <span class="label label-success label-outcome"><span class="amount"></span> <span class="per-month">per<br>maand</span></span>
+                        ...dan is huren voordeliger.
+                    </p>
+
+                    <p class="outcome" id="outcome-negative">
+                        Kopen is beter, zelfs als je<br>
+                        gratis zou kunnen huren.
+                        <span class="label label-default label-outcome"><span class="amount"></span> <span class="per-month">per<br>maand</span></span>
+                        Het huis betaalt zichzelf terug.
+                    </p>
 
                     <table id="details" class="table">
                         <thead>
@@ -161,7 +198,7 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td>Initieele kosten</td>
+                                <td>Initiële kosten</td>
                                 <td></td>
                                 <td></td>
                             </tr>

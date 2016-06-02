@@ -248,7 +248,15 @@ var formatter = function(value) {
 }
 
 var labelize = function(input, output) {
-    d3.select("#per-month").data([output.rent.rent]).text(formatter);
+    if (output.rent.rent > 0) {
+        d3.select("#outcome-positive").style("display", "block");
+        d3.select("#outcome-negative").style("display", "none");
+        d3.select("#outcome-positive .amount").data([output.rent.rent]).text(formatter);
+    } else {
+        d3.select("#outcome-positive").style("display", "none");
+        d3.select("#outcome-negative").style("display", "block");
+        d3.select("#outcome-negative .amount").data([output.rent.rent]).text(formatter);
+    }
 };
 
 var tabulate = function(input, output) {
