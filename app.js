@@ -402,6 +402,10 @@ durationScale.invert = function(value) {
     return this.domain()[x];
 };
 
+var form = {
+    purchasePrice: d3.select("#purchasePriceInput"),
+}
+
 var graphs = {
     purchasePrice: graph({
         id: "#purchasePrice",
@@ -416,6 +420,7 @@ var graphs = {
         setValue: function(value) {
             value = Math.round(value / 1000) * 1000;
             input.aankoopWaarde = value;
+            form.purchasePrice.attr("value", value);
             update();
             return value;
         }
