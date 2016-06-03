@@ -234,7 +234,7 @@ var input = {
     koopKosten: 0.03,
     verkoopKosten: 0.04,
     investeringsOpbrengst: 0.04,
-    incomes: [48000, 50000],
+    incomes: [30000, 30000],
     rentGrowth: 0.02, // jaarlijkse stijging van huurprijzen
     insurance: 0.0005,  // jaarlijks bedrag opstalverzekering
     maintenance: 0.005, // ratio, jaarlijks
@@ -274,7 +274,8 @@ var tabulate = function(input, output) {
             .text(formatter);
 
     d3.select("#details thead th")
-        .text("Op basis van " + input.duration + " jaar");
+        .data([input.duration])
+        .text(function(d) { return "Op basis van " + d + " jaar" });
 };
 
 
