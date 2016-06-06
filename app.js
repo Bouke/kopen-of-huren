@@ -309,7 +309,7 @@ var graph = function(options) {
         .orient("left")
         .ticks(4);
 
-    var svg = options.graph //d3.select(options.id)
+    var svg = options.element //d3.select(options.id)
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
@@ -382,8 +382,9 @@ var graph = function(options) {
         d3.event.preventDefault();
         var mousemove = function() {
             var sx = d3.mouse(this)[0];
-            selectedValue = options.setValue(sliderPrecision(xScale.invert(sx)));
+            selectedValue = sliderPrecision(xScale.invert(sx));
             renderSlider();
+            options.didMoveSlider(selectedValue);
         }.bind(this);
         mousemove();
         svg.on("mousemove", mousemove);
@@ -402,7 +403,7 @@ var graph = function(options) {
     return {
         setValue: function(value) {
             selectedValue = value;
-            renderSlider()
+            renderSlider();
         },
         update: update,
     };
@@ -418,115 +419,164 @@ durationScale.invert = function(value) {
     return this.domain()[x];
 };
 
+function form(options) {
+    function valid(value) {
+        return value >= options.range[0] && value <= options.range[1];
+    };
+
+    var selectedValue = options.initialValue;
+
+    options.element
+        .attr("value", options.format(selectedValue))
+        .on("keyup", function() {
+            var value = options.parse(this.value);
+            if(!valid(value)) { return; }
+            options.didChangeValue(value);
+        })
+        .on("blur", function() {
+            var value = options.parse(this.value);
+            if(valid(value)) {
+                selectedValue = value;
+            }
+            this.value = options.format(selectedValue);
+            options.didChangeValue(selectedValue);
+        });
+
+    return {
+        setValue: function(value) {
+            selectedValue = value;
+            options.element.node().value = options.format(selectedValue);
+        }
+    }
+}
+
+function parameter(name, options) {
+    var options = Object.assign({
+        initialValue: 0,
+    }, options);
+
+    options.graph = Object.assign({
+        element: d3.select("#graph-" + name),
+        initialValue: options.initialValue,
+        y: function(value) {
+            var copy = Object.assign({}, input);
+            copy[name]= value;
+            return calculate(copy).rent.rent;
+        },
+        didMoveSlider: function(value) {
+            input[name] = value;
+            update();
+            parameter.form.setValue(value);
+        },
+    }, options.graph);
+
+    options.form = Object.assign({
+        element: d3.select("#input-" + name),
+        initialValue: options.initialValue,
+        parse: Number,
+        range: d3.extent(options.graph.xScale.domain()),
+        format: d3.format(),
+        didChangeValue: function(value) {
+            input[name] = value;
+            update();
+            parameter.graph.setValue(value);
+        }
+    }, options.form);
+
+    var parameter = {
+        graph: graph(options.graph),
+        form: form(options.form),
+    };
+    return parameter;
+}
+
 var percentageFormFormat = function(value) { return d3.format(".2f")(value * 100); },
     percentageFormParse = function(str) { return Number(str) / 100 };
 
-var parameters = {
-    purchasePrice: {
+var parameters = [
+    parameter("purchasePrice", {
         initialValue: input.purchasePrice,
-        xScale: d3.scale.log().domain([50e3, 3e6]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("s")).tickValues([100e3, 200e3, 1e6, 2e6]),
-        sliderPrecision: 1000,
-        formRange: [0, Infinity],
-    },
-    duration: {
+        graph: {
+            xScale: d3.scale.log().domain([50e3, 3e6]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("s")).tickValues([100e3, 200e3, 1e6, 2e6]),
+            sliderPrecision: 1000,
+        },
+        form: {
+            range: [0, Infinity],
+        },
+    }),
+    parameter("duration", {
         initialValue: input.duration,
-        xScale: durationScale,
-        xAxis: d3.svg.axis().tickValues(d3.range(10, 41, 10)),
-    },
-    mortgageRent: {
+        graph: {
+            xScale: durationScale,
+            xAxis: d3.svg.axis().tickValues(d3.range(10, 41, 10)),
+        },
+    }),
+    parameter("mortgageRent", {
         initialValue: input.mortgageRent,
-        xScale: d3.scale.linear().domain([0, 0.15001]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(4),
-        sliderFormat: d3.format(".2%"),
-        formFormat: percentageFormFormat,
-        formParse: percentageFormParse,
-    },
-    housePriceIncrease: {
+        graph: {
+            xScale: d3.scale.linear().domain([0, 0.15001]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(4),
+            sliderFormat: d3.format(".2%"),
+        },
+        form: {
+            format: percentageFormFormat,
+            parse: percentageFormParse,
+        },
+    }),
+    parameter("housePriceIncrease", {
         initialValue: input.housePriceIncrease,
-        xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
-        sliderFormat: d3.format(".2%"),
-        formFormat: percentageFormFormat,
-        formParse: percentageFormParse,
-    },
-    investmentReturn: {
+        graph: {
+            xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
+            sliderFormat: d3.format(".2%"),
+        },
+        form: {
+            format: percentageFormFormat,
+            parse: percentageFormParse,
+        },
+    }),
+    parameter("investmentReturn", {
         initialValue: input.investmentReturn,
-        xScale: d3.scale.linear().domain([-0.1, 0.2]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(7),
-        sliderFormat: d3.format(".2%"),
-        formFormat: percentageFormFormat,
-        formParse: percentageFormParse,
-    },
-    rentGrowth: {
+        graph: {
+            xScale: d3.scale.linear().domain([-0.1, 0.2]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(7),
+            sliderFormat: d3.format(".2%"),
+        },
+        form: {
+            format: percentageFormFormat,
+            parse: percentageFormParse,
+        },
+    }),
+    parameter("rentGrowth", {
         initialValue: input.rentGrowth,
-        xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
-        sliderFormat: d3.format(".2%"),
-        formFormat: percentageFormFormat,
-        formParse: percentageFormParse,
-    },
-    income0: {
+        graph: {
+            xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
+            sliderFormat: d3.format(".2%"),
+        },
+        form: {
+            format: percentageFormFormat,
+            parse: percentageFormParse,
+        },
+    }),
+    parameter("income0", {
         initialValue: input.income0,
-        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
-        sliderPrecision: 1000,
-    },
-    income1: {
+        graph: {
+            xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
+            sliderPrecision: 1000,
+        },
+    }),
+    parameter("income1", {
         initialValue: input.income1,
-        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
-        sliderPrecision: 1000,
-    },
-};
-
-Object.keys(parameters).forEach(function(key) {
-    var parameter = Object.assign({
-        initialValue: 0,
-        graph: d3.select("#graph-" + key),
-        form: d3.select("#input-" + key),
-        formParse: Number,
-        formRange: d3.extent(parameters[key].xScale.domain()),
-        formFormat: d3.format(),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy[key]= value;
-            return calculate(copy).rent.rent;
+        graph: {
+            xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
+            sliderPrecision: 1000,
         },
-        setValue: function(value) {
-            input[key] = value;
-            update();
-            this.form.attr("value", parameter.formFormat(value));
-            return value;
-        },
-    }, parameters[key]);
-
-    function valid(value) {
-        return value >= parameter.formRange[0] && value <= parameter.formRange[1];
-    };
-
-    parameter.form
-        .attr("value", parameter.formFormat(parameter.initialValue))
-        .on("keyup", function() {
-            var value = parameter.formParse(this.value);
-            if(!valid(value)) { return; }
-            input[key] = value;
-            parameter.graph.setValue(value);
-            update();
-        })
-        .on("blur", function() {
-            var value = parameter.formParse(this.value);
-            if(valid(value)) {
-                this.value = parameter.formFormat(value);
-            } else {
-                this.value = parameter.formFormat(input[key]);
-            }
-        });
-
-    // TODO: put update method somewhere
-    Object.assign(parameter.graph, graph(parameter));
-    parameters[key] = parameter;
-});
+    }),
+];
 
 var update = function() {
     var output = calculate(input);
