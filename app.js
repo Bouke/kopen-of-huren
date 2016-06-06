@@ -45,47 +45,51 @@ if (!Object.assign) {
 }
 
 var belasting = function () {
-    var box1Schijven = [
-        {from: 0, to: 19822, ratio: 0.3650},
-        {from: 19822, to: 33589, ratio: 0.42},
-        {from: 33589, to: 57585, ratio: 0.42},
-        {from: 57585, to: Infinity, ratio: 0.52},
-    ];
     var box1 = function(inkomen) {
-        return box1Schijven.reduce(function(sum, tier) {
-            return Math.max(Math.min(tier.to, inkomen) - Math.min(tier.from, inkomen), 0) * tier.ratio + sum;
-        }, 0);
+        if(inkomen >= 57585) {
+            return 23095.49 + (inkomen - 57585) * 0.52;
+        } else if(inkomen >= 19822) {
+            return 7235.03 + (inkomen - 19822) * 0.42;
+        } else if(inkomen >= 0) {
+            return inkomen * 0.3650;
+        } else {
+            return 0;
+        }
     };
 
-    var eigenwoningforfaitTarieven = [
-        {from: 0, to: 12500, ratio: 0},
-        {from: 12500, to: 25000, ratio: 0.003},
-        {from: 25000, to: 50000, ratio: 0.0045},
-        {from: 50000, to: 75000, ratio: 0.0060},
-        {from: 75000, to: 1050000, ratio: 0.0075},
-        {from: 1050000, to: Infinity, ratio: function(woz) { return 7875 + (woz - 1050000) * 0.0205 }},
-    ];
     var eigenwoningforfait = function(woz) {
-        var rate = eigenwoningforfaitTarieven.filter(function(rate) { return woz >= rate.from && woz < rate.to })[0];
-        return typeof(rate.ratio) === "function" ? rate.ratio(woz) : woz * rate.ratio;
+        if(woz >= 1050000) {
+            return 7875 + (woz - 1050000) * 0.0205;
+        } else if(woz >= 75000) {
+            return woz * 0.0075;
+        } else if(woz >= 50000) {
+            return woz * 0.006;
+        } else if(woz >= 25000) {
+            return woz * 0.0045;
+        } else if(woz >= 12500) {
+            return woz * 0.003;
+        } else {
+            return 0;
+        }
     };
 
-    var taxRelief = function(incomes, paidMortgageInterest, wozValue) {
-        var hypotheekrenteaftrek = Math.max(paidMortgageInterest - eigenwoningforfait(wozValue), 0);
-        if(incomes.length == 1) {
-            return box1(income) - box1(Math.max(income - hypotheekrenteaftrek, 0));
-        } else if(incomes.length == 2) {
-            var adjusted = incomes.slice();
-            if(incomes[0] < incomes[1]) {
-                var diff = Math.min(incomes[1] - incomes[0], hypotheekrenteaftrek);
-                adjusted[0] -= diff + (hypotheekrenteaftrek - diff) / 2;
-                adjusted[1] -= (hypotheekrenteaftrek - diff) / 2;
+    var taxRelief = function(income0, income1, paidMortgageInterest, wozValue) {
+        var mortgageRentaftrek = Math.max(paidMortgageInterest - eigenwoningforfait(wozValue), 0);
+        if(income1 == 0) {
+            return box1(income0) - box1(Math.max(income0 - mortgageRentaftrek, 0));
+        } else {
+            var adjusted0 = income0,
+                adjusted1 = income1;
+            if(income0 < income1) {
+                var diff = Math.min(income1 - income0, mortgageRentaftrek);
+                adjusted0 -= diff + (mortgageRentaftrek - diff) / 2;
+                adjusted1 -= (mortgageRentaftrek - diff) / 2;
             } else {
-                var diff = Math.min(incomes[0] - incomes[1], hypotheekrenteaftrek);
-                adjusted[0] -= (hypotheekrenteaftrek - diff) / 2;
-                adjusted[1] -= diff + (hypotheekrenteaftrek - diff) / 2;
+                var diff = Math.min(income0 - income1, mortgageRentaftrek);
+                adjusted0 -= (mortgageRentaftrek - diff) / 2;
+                adjusted1 -= diff + (mortgageRentaftrek - diff) / 2;
             }
-            return box1(incomes[0]) + box1(incomes[1]) - box1(adjusted[0]) - box1(adjusted[1]);
+            return box1(income0) + box1(income1) - box1(adjusted0) - box1(adjusted1);
         }
     };
 
@@ -108,7 +112,7 @@ var mortgage = function() {
 
     // rente_percentage per jaar
     // annuiteit per maand
-    // hypotheekrente over geheel jaar
+    // mortgageRent over geheel jaar
     var interest = function(schuld, rentepercentage, annuiteit) {
         return d3.range(0, 12).reduce(function(som) {
             var rente = schuld * rentepercentage / 12;
@@ -124,8 +128,8 @@ var mortgage = function() {
 }();
 
 var calculateBuy = function(input) {
-    var debt = input.aankoopWaarde * input.hypotheekDeel,
-        annuity = mortgage.annuity(debt, input.hypotheekRente, input.hypotheekDuur),
+    var debt = input.purchasePrice * input.hypotheekDeel,
+        annuity = mortgage.annuity(debt, input.mortgageRent, input.hypotheekDuur),
         buy = {
             initial: 0,
             recurring: 0,
@@ -135,34 +139,34 @@ var calculateBuy = function(input) {
         };
 
     // Buying costs.
-    buy.initial += input.aankoopWaarde * input.koopKosten;
+    buy.initial += input.purchasePrice * input.koopKosten;
 
     // Selling costs.
-    buy.proceeds += input.aankoopWaarde * input.verkoopKosten;
+    buy.proceeds += input.purchasePrice * input.verkoopKosten;
 
     // Total sale value of house.
-    buy.proceeds -= input.aankoopWaarde * Math.pow(1 + input.stijgingHuizenprijzen, input.duration);
+    buy.proceeds -= input.purchasePrice * Math.pow(1 + input.housePriceIncrease, input.duration);
 
     for(var year = 0; year < input.duration; year++) {
         var yearPaidInterest = 0,
-            yearRecurringCosts = input.aankoopWaarde * input.ozbTarief + input.rioolheffingEigenaar,
+            yearRecurringCosts = input.purchasePrice * input.ozbTarief + input.rioolheffingEigenaar,
             // investment return at end of year.
-            yearInvestmentReturn = Math.pow(1 + input.investeringsOpbrengst, input.duration - year - 1) - 1;
+            yearInvestmentReturn = Math.pow(1 + input.investmentReturn, input.duration - year - 1) - 1;
 
-        yearRecurringCosts += input.aankoopWaarde * input.insurance;
-        yearRecurringCosts += input.aankoopWaarde * input.maintenance;
+        yearRecurringCosts += input.purchasePrice * input.insurance;
+        yearRecurringCosts += input.purchasePrice * input.maintenance;
 
         if(year < input.hypotheekDuur) {
             for(var month = 0; month < 12; month++) {
-                var monthPaidInterest = debt * input.hypotheekRente / 12;
+                var monthPaidInterest = debt * input.mortgageRent / 12;
                 yearPaidInterest += monthPaidInterest;
                 debt -= (annuity - monthPaidInterest);
                 buy.recurring += annuity;
-                buy.opportunity += annuity * (Math.pow(1 + input.investeringsOpbrengst, input.duration - (year + month / 12)) - 1);
+                buy.opportunity += annuity * (Math.pow(1 + input.investmentReturn, input.duration - (year + month / 12)) - 1);
             }
         }
 
-        yearRecurringCosts -= belasting.taxRelief(input.incomes, yearPaidInterest, input.aankoopWaarde);
+        yearRecurringCosts -= belasting.taxRelief(input.income0, input.income1, yearPaidInterest, input.purchasePrice);
 
         buy.recurring += yearRecurringCosts;
         buy.opportunity += yearRecurringCosts * yearInvestmentReturn;
@@ -192,7 +196,7 @@ var calculateRent = function(input, buy) {
     var deposit = rent.rent * input.rentSecurityDeposit,
         brokerFee = rent.rent * 12 * input.rentBrokerFee;
     rent.initial += deposit + brokerFee;
-    rent.opportunity += (deposit + brokerFee) * (Math.pow(1 + input.investeringsOpbrengst, input.duration) - 1);
+    rent.opportunity += (deposit + brokerFee) * (Math.pow(1 + input.investmentReturn, input.duration) - 1);
     rent.proceeds -= deposit;
 
     for(var year = 0; year < input.duration; year++) {
@@ -201,7 +205,7 @@ var calculateRent = function(input, buy) {
             var monthRecurring = yearRent;
 
             rent.recurring += yearRent;
-            rent.opportunity += yearRent * (Math.pow(1 + input.investeringsOpbrengst, input.duration - (year + month / 12)) - 1);
+            rent.opportunity += yearRent * (Math.pow(1 + input.investmentReturn, input.duration - (year + month / 12)) - 1);
         }
     }
 
@@ -223,18 +227,19 @@ var calculate = function(input) {
 };
 
 var input = {
-    aankoopWaarde: 250000,
+    purchasePrice: 250000,
     duration: 8,
     hypotheekDeel: 1.03,  // ratio -- @todo, de kosten voor eigen inleg als opportunity cost!
-    hypotheekRente: 0.0215,
+    mortgageRent: 0.0215,
     hypotheekDuur: 30,
-    stijgingHuizenprijzen: 0.02,
+    housePriceIncrease: 0.02,
     ozbTarief: 0.001331,
     rioolheffingEigenaar: 105,
     koopKosten: 0.03,
     verkoopKosten: 0.04,
-    investeringsOpbrengst: 0.04,
-    incomes: [30000, 30000],
+    investmentReturn: 0.04,
+    income0: 30000,
+    income1: 0,
     rentGrowth: 0.02, // jaarlijkse stijging van huurprijzen
     insurance: 0.0005,  // jaarlijks bedrag opstalverzekering
     maintenance: 0.005, // ratio, jaarlijks
@@ -286,9 +291,9 @@ var graph = function(options) {
         width = viewBoxWidth - margin.left - margin.right,
         height = viewBoxHeight - margin.top - margin.bottom;
 
-    var selectedValue = options.selectedValue;
+    var selectedValue = options.initialValue;
 
-    if(!options.y) { return {update: function(){}}; }
+    if(!options.y) { console.error("No `y` function"); }
 
     var xScale = options.xScale;
 
@@ -304,7 +309,7 @@ var graph = function(options) {
         .orient("left")
         .ticks(4);
 
-    var svg = d3.select(options.id)
+    var svg = options.graph //d3.select(options.id)
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
@@ -368,12 +373,16 @@ var graph = function(options) {
         slider.select("text").text(formatter(selectedValue));
         slider.attr("transform", "translate("+xScale(selectedValue)+", "+(height-1)+")");
     };
+    var sliderPrecision = function(value) {
+        if(!options.sliderPrecision) { return value; }
+        return Math.round(value / options.sliderPrecision) * options.sliderPrecision;
+    };
 
     svg.on("mousedown", function(e) {
         d3.event.preventDefault();
         var mousemove = function() {
             var sx = d3.mouse(this)[0];
-            selectedValue = options.setValue(xScale.invert(sx));
+            selectedValue = options.setValue(sliderPrecision(xScale.invert(sx)));
             renderSlider();
         }.bind(this);
         mousemove();
@@ -407,156 +416,87 @@ var form = {
     purchasePrice: d3.select("#purchasePriceInput"),
 }
 
-var graphs = {
-    purchasePrice: graph({
-        id: "#purchasePrice",
-        selectedValue: input.aankoopWaarde,
+var parameters = {
+    purchasePrice: {
+        initialValue: input.purchasePrice,
         xScale: d3.scale.log().domain([50e3, 3e6]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("s")).tickValues([100e3, 200e3, 1e6, 2e6]),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy.aankoopWaarde = value;
-            return calculate(copy).rent.rent;
-        },
-        setValue: function(value) {
-            value = Math.round(value / 1000) * 1000;
-            input.aankoopWaarde = value;
-            form.purchasePrice.attr("value", value);
-            update();
-            return value;
-        }
-    }),
-    duration: graph({
-        id: "#duration",
-        selectedValue: input.duration,
+        sliderPrecision: 1000,
+    },
+    duration: {
+        initialValue: input.duration,
         xScale: durationScale,
         xAxis: d3.svg.axis().tickValues(d3.range(10, 41, 10)),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy.duration = value;
-            return calculate(copy).rent.rent;
-        },
-        setValue: function(value) {
-            input.duration = value;
-            update();
-            return value;
-        }
-    }),
-    mortgageRent: graph({
-        id: "#mortgageRent",
-        selectedValue: input.hypotheekRente,
+    },
+    mortgageRent: {
+        initialValue: input.mortgageRent,
         xScale: d3.scale.linear().domain([0, 0.15001]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(4),
         sliderFormat: d3.format(".2%"),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy.hypotheekRente = value;
-            return calculate(copy).rent.rent;
-        },
-        setValue: function(value) {
-            value = Math.round(value * 1e4) / 1e4;
-            input.hypotheekRente = value;
-            update();
-            return value;
-        }
-    }),
-    income0: graph({
-        id: "#income0",
-        selectedValue: input.incomes[0],
-        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy.incomes[0] = value;
-            return calculate(copy).rent.rent;
-        },
-        setValue: function(value) {
-            value = Math.round(value / 1e3) * 1e3;
-            input.incomes[0] = value;
-            update();
-            return value;
-        }
-    }),
-    income1: graph({
-        id: "#income1",
-        selectedValue: input.incomes[1],
-        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
-        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy.incomes[1] = value;
-            return calculate(copy).rent.rent;
-        },
-        setValue: function(value) {
-            value = Math.round(value / 1e3) * 1e3;
-            input.incomes[1] = value;
-            update();
-            return value;
-        }
-    }),
-    housePriceIncrease: graph({
-        id: "#housePriceIncrease",
-        selectedValue: input.stijgingHuizenprijzen,
+    },
+    housePriceIncrease: {
+        initialValue: input.housePriceIncrease,
         xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
         sliderFormat: d3.format(".2%"),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy.stijgingHuizenprijzen = value;
-            return calculate(copy).rent.rent;
-        },
-        setValue: function(value) {
-            value = Math.round(value * 1e4) / 1e4;
-            input.stijgingHuizenprijzen = value;
-            update();
-            return value;
-        }
-    }),
-    investmentReturn: graph({
-        id: "#investmentReturn",
-        selectedValue: input.investeringsOpbrengst,
+    },
+    investmentReturn: {
+        initialValue: input.investmentReturn,
         xScale: d3.scale.linear().domain([-0.1, 0.2]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(7),
         sliderFormat: d3.format(".2%"),
-        y: function(value) {
-            var copy = Object.assign({}, input);
-            copy.investeringsOpbrengst = value;
-            return calculate(copy).rent.rent;
-        },
-        setValue: function(value) {
-            value = Math.round(value * 1e4) / 1e4;
-            input.investeringsOpbrengst = value;
-            update();
-            return value;
-        }
-    }),
-    rentGrowth: graph({
-        id: "#rentGrowth",
-        selectedValue: input.rentGrowth,
+    },
+    rentGrowth: {
+        initialValue: input.rentGrowth,
         xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
         sliderFormat: d3.format(".2%"),
+    },
+    income0: {
+        initialValue: input.income0,
+        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
+        sliderPrecision: 1000,
+    },
+    income1: {
+        initialValue: input.income1,
+        xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
+        xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
+        sliderPrecision: 1000,
+    },
+};
+
+Object.keys(parameters).forEach(function(key) {
+    var parameter = Object.assign({
+        initialValue: 0,
+        graph: d3.select("#graph-" + key),
+        form: d3.select("#input-" + key),
         y: function(value) {
             var copy = Object.assign({}, input);
-            copy.rentGrowth = value;
+            copy[key]= value;
             return calculate(copy).rent.rent;
         },
         setValue: function(value) {
-            value = Math.round(value * 1e4) / 1e4;
-            input.rentGrowth = value;
+            input[key] = value;
             update();
+            this.form.attr("val", value);
+            console.log(this.form);
             return value;
-        }
-    }),
-};
+        },
+    }, parameters[key]);
+
+    // TODO: put update method somewhere
+    parameter.graph.update = graph(parameter).update;
+    parameters[key] = parameter;
+});
 
 var update = function() {
     var output = calculate(input);
     tabulate(input, output);
     labelize(input, output);
 
-    Object.keys(graphs).forEach(function(key) {
-        graphs[key].update();
+    Object.keys(parameters).forEach(function(key) {
+        parameters[key].graph.update();
     });
 };
 
