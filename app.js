@@ -399,7 +399,13 @@ var graph = function(options) {
         .style('visibility', 'hidden')
         .attr({x: 0, y: 0, width: width, height: height});
 
-    return {update: update};
+    return {
+        setValue: function(value) {
+            selectedValue = value;
+            renderSlider()
+        },
+        update: update,
+    };
 }
 
 var durationScale = d3.scale.ordinal().domain(d3.range(1,41));
@@ -412,9 +418,8 @@ durationScale.invert = function(value) {
     return this.domain()[x];
 };
 
-var form = {
-    purchasePrice: d3.select("#purchasePriceInput"),
-}
+var percentageFormFormat = function(value) { return d3.format(".2f")(value * 100); },
+    percentageFormParse = function(str) { return Number(str) / 100 };
 
 var parameters = {
     purchasePrice: {
@@ -422,6 +427,7 @@ var parameters = {
         xScale: d3.scale.log().domain([50e3, 3e6]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("s")).tickValues([100e3, 200e3, 1e6, 2e6]),
         sliderPrecision: 1000,
+        formRange: [0, Infinity],
     },
     duration: {
         initialValue: input.duration,
@@ -433,24 +439,32 @@ var parameters = {
         xScale: d3.scale.linear().domain([0, 0.15001]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(4),
         sliderFormat: d3.format(".2%"),
+        formFormat: percentageFormFormat,
+        formParse: percentageFormParse,
     },
     housePriceIncrease: {
         initialValue: input.housePriceIncrease,
         xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
         sliderFormat: d3.format(".2%"),
+        formFormat: percentageFormFormat,
+        formParse: percentageFormParse,
     },
     investmentReturn: {
         initialValue: input.investmentReturn,
         xScale: d3.scale.linear().domain([-0.1, 0.2]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(7),
         sliderFormat: d3.format(".2%"),
+        formFormat: percentageFormFormat,
+        formParse: percentageFormParse,
     },
     rentGrowth: {
         initialValue: input.rentGrowth,
         xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
         xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
         sliderFormat: d3.format(".2%"),
+        formFormat: percentageFormFormat,
+        formParse: percentageFormParse,
     },
     income0: {
         initialValue: input.income0,
@@ -471,6 +485,9 @@ Object.keys(parameters).forEach(function(key) {
         initialValue: 0,
         graph: d3.select("#graph-" + key),
         form: d3.select("#input-" + key),
+        formParse: Number,
+        formRange: d3.extent(parameters[key].xScale.domain()),
+        formFormat: d3.format(),
         y: function(value) {
             var copy = Object.assign({}, input);
             copy[key]= value;
@@ -479,14 +496,35 @@ Object.keys(parameters).forEach(function(key) {
         setValue: function(value) {
             input[key] = value;
             update();
-            this.form.attr("val", value);
-            console.log(this.form);
+            this.form.attr("value", parameter.formFormat(value));
             return value;
         },
     }, parameters[key]);
 
+    function valid(value) {
+        return value >= parameter.formRange[0] && value <= parameter.formRange[1];
+    };
+
+    parameter.form
+        .attr("value", parameter.formFormat(parameter.initialValue))
+        .on("keyup", function() {
+            var value = parameter.formParse(this.value);
+            if(!valid(value)) { return; }
+            input[key] = value;
+            parameter.graph.setValue(value);
+            update();
+        })
+        .on("blur", function() {
+            var value = parameter.formParse(this.value);
+            if(valid(value)) {
+                this.value = parameter.formFormat(value);
+            } else {
+                this.value = parameter.formFormat(input[key]);
+            }
+        });
+
     // TODO: put update method somewhere
-    parameter.graph.update = graph(parameter).update;
+    Object.assign(parameter.graph, graph(parameter));
     parameters[key] = parameter;
 });
 
