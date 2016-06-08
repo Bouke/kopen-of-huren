@@ -70,6 +70,7 @@
             }
         </style>
         <script src="//oss.maxcdn.com/d3js/3.5.6/d3.min.js" charset="utf-8"></script>
+        <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=Intl.~locale.nl"></script>
     </head>
     <body>
         <nav class="navbar navbar-inverse navbar-fixed-top">
@@ -93,10 +94,7 @@
                             <p>Een belangrijke factor, maar zeker niet de enige met grote invloed.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-purchasePrice">Aankoopwaarde (in EUR)</label>
-                                <div class="input-group">
-                                    <div class="input-group-addon">€</div>
-                                    <input type="text" class="form-control" id="input-purchasePrice" placeholder="Aankoopwaarde">
-                                </div>
+                                <input type="text" class="form-control" id="input-purchasePrice" placeholder="Aankoopwaarde">
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -110,10 +108,7 @@
                             <p>Kopen is beter als je langer blijft zodat je de initiële kosten over meerdere jaren kunt uitsmeren.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-duration">Aantal jaar</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="input-duration" placeholder="Aantal jaar">
-                                    <div class="input-group-addon">jaar</div>
-                                </div>
+                                <input type="text" class="form-control" id="input-duration" placeholder="Aantal jaar">
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -129,10 +124,7 @@
                             <p>Een lage hypotheekrente zorgt voor een lagere maandlast en maakt kopen interessanter.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-mortgageRent">Hypotheekrente</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="input-mortgageRent" placeholder="Percentage">
-                                    <div class="input-group-addon">% per jaar</div>
-                                </div>
+                                <input type="text" class="form-control" id="input-mortgageRent" placeholder="Percentage">
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -144,14 +136,10 @@
                     <div class="row">
                         <div class="col-md-4">
                             <h4>Hoeveel verdien je?</h4>
-                            <p>Hypotheeklasten zijn deels aftrekbaar, afhankelijk van je inkomsten.</p>
+                            <p>Hypotheeklasten zijn deels aftrekbaar, afhankelijk van je inkomsten. Bruto jaarinkomen.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-income0">Inkomen 1</label>
-                                <div class="input-group">
-                                    <div class="input-group-addon">€</div>
-                                    <input type="text" class="form-control" id="input-income0" placeholder="Bedrag">
-                                    <div class="input-group-addon">bruto per jaar</div>
-                                </div>
+                                <input type="text" class="form-control" id="input-income0" placeholder="Bedrag">
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -162,14 +150,10 @@
                     <div class="row">
                         <div class="col-md-4">
                             <h4>Hoeveel verdient je partner?</h4>
-                            <p>Hypotheeklasten zijn deels aftrekbaar, afhankelijk van je inkomsten.</p>
+                            <p>Hypotheeklasten zijn deels aftrekbaar, afhankelijk van je inkomsten. Bruto jaarinkomen.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-income1">Inkomen 2</label>
-                                <div class="input-group">
-                                    <div class="input-group-addon">€</div>
-                                    <input type="text" class="form-control" id="input-income1" placeholder="Bedrag">
-                                    <div class="input-group-addon">bruto per jaar</div>
-                                </div>
+                                <input type="text" class="form-control" id="input-income1" placeholder="Bedrag">
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -184,10 +168,7 @@
                             <p>Geld dat je investeert in een koopwoning, investeer je in bakstenen. Bij een huurwoning kun je dit geld mogelijk tegen hogere opbrengsten investeren.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-investmentReturn">Investeringsopbrengst</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="input-investmentReturn" placeholder="Percentage">
-                                    <div class="input-group-addon">% per jaar</div>
-                                </div>
+                                <input type="text" class="form-control" id="input-investmentReturn" placeholder="Percentage">
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -201,10 +182,7 @@
                             <p>Een huis dat meer waard wordt, kan zichzelf terug verdienen. Bij een daling kom je echter onder water te staan.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-housePriceIncrease">Stijging huizenprijzen</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="input-housePriceIncrease" placeholder="Percentage">
-                                    <div class="input-group-addon">% per jaar</div>
-                                </div>
+                                <input type="text" class="form-control" id="input-housePriceIncrease" placeholder="Percentage">
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -218,10 +196,7 @@
                             <p>Huurprijzen in de vrije sector willen nogal eens fluctueren.</p>
                             <div class="form-group">
                                 <label class="sr-only" for="input-rentGrowth">Stijging huurprijzen</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="input-rentGrowth" placeholder="Percentage">
-                                    <div class="input-group-addon">% per jaar</div>
-                                </div>
+                                <input type="text" class="form-control" id="input-rentGrowth" placeholder="Percentage">
                             </div>
                         </div>
                         <div class="col-md-8">

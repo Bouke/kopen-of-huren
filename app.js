@@ -473,9 +473,11 @@ function parameter(name, options) {
     options.form = Object.assign({
         element: d3.select("#input-" + name),
         initialValue: options.initialValue,
-        parse: Number,
+        parse: function(str) {
+            return str.replace(/[^0-9^,]/g, "").replace(",", ".");
+        },
         range: d3.extent(options.graph.xScale.domain()),
-        format: d3.format(),
+        format: Intl.NumberFormat().format,
         didChangeValue: function(value) {
             input[name] = value;
             update();
@@ -490,8 +492,17 @@ function parameter(name, options) {
     return parameter;
 }
 
-var percentageFormFormat = function(value) { return d3.format(".2f")(value * 100); },
-    percentageFormParse = function(str) { return Number(str) / 100 };
+var percentageFormatter = Intl.NumberFormat({maximumFractionDigits: 2}).format,
+    percentageFormFormat = function(value) {
+        return percentageFormatter(value * 100) + "%";
+    },
+    percentageFormParse = function(str) {
+        return Number(str.replace(/[^0-9^,]/g, "").replace(",", ".")) / 100
+    },
+    numberFormatter = Intl.NumberFormat().format,
+    moneyFormatter = function(value) {
+        return "€" + numberFormatter(value);
+    };
 
 var parameters = [
     parameter("purchasePrice", {
@@ -502,6 +513,7 @@ var parameters = [
             sliderPrecision: 1000,
         },
         form: {
+            format: moneyFormatter,
             range: [0, Infinity],
         },
     }),
@@ -511,6 +523,11 @@ var parameters = [
             xScale: durationScale,
             xAxis: d3.svg.axis().tickValues(d3.range(10, 41, 10)),
         },
+        form: {
+            format: function(value) {
+                return numberFormatter(value) + " jaar";
+            },
+        }
     }),
     parameter("mortgageRent", {
         initialValue: input.mortgageRent,
@@ -567,6 +584,9 @@ var parameters = [
             xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
             sliderPrecision: 1000,
         },
+        form: {
+            format: moneyFormatter,
+        },
     }),
     parameter("income1", {
         initialValue: input.income1,
@@ -574,6 +594,9 @@ var parameters = [
             xScale: d3.scale.linear().domain([0, 100000]).clamp(true),
             xAxis: d3.svg.axis().tickFormat(d3.format("s")).ticks(5),
             sliderPrecision: 1000,
+        },
+        form: {
+            format: moneyFormatter,
         },
     }),
 ];
