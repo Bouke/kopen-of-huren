@@ -544,7 +544,7 @@ var parameters = [
     parameter("housePriceIncrease", {
         initialValue: input.housePriceIncrease,
         graph: {
-            xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
+            xScale: d3.scale.linear().domain([-0.05, 0.15001]).clamp(true),
             xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
             sliderFormat: d3.format(".2%"),
         },
@@ -568,7 +568,7 @@ var parameters = [
     parameter("rentGrowth", {
         initialValue: input.rentGrowth,
         graph: {
-            xScale: d3.scale.linear().domain([-0.05, 0.15]).clamp(true),
+            xScale: d3.scale.linear().domain([-0.05, 0.15001]).clamp(true),
             xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
             sliderFormat: d3.format(".2%"),
         },
