@@ -49,9 +49,9 @@ var belasting = function () {
         if(inkomen >= 57585) {
             return 23095.49 + (inkomen - 57585) * 0.52;
         } else if(inkomen >= 19822) {
-            return 7235.03 + (inkomen - 19822) * 0.42;
+            return 7235.03 + (inkomen - 19822) * 0.404;
         } else if(inkomen >= 0) {
-            return inkomen * 0.3650;
+            return inkomen * 0.3655;
         } else {
             return 0;
         }
@@ -59,7 +59,7 @@ var belasting = function () {
 
     var eigenwoningforfait = function(woz) {
         if(woz >= 1050000) {
-            return 7875 + (woz - 1050000) * 0.0205;
+            return 7875 + (woz - 1050000) * 0.0235;
         } else if(woz >= 75000) {
             return woz * 0.0075;
         } else if(woz >= 50000) {
