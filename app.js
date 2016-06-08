@@ -233,7 +233,7 @@ var input = {
     mortgageRent: 0.0215,
     hypotheekDuur: 30,
     housePriceIncrease: 0.02,
-    ozbTarief: 0.001331,
+    ozbTarief: 0.0015,
     rioolheffingEigenaar: 105,
     koopKosten: 0.03,
     verkoopKosten: 0.04,
@@ -492,11 +492,11 @@ function parameter(name, options) {
     return parameter;
 }
 
-var percentageFormatter = Intl.NumberFormat({maximumFractionDigits: 2}).format,
-    percentageFormFormat = function(value) {
-        return percentageFormatter(value * 100) + "%";
+var decimalFormatter = Intl.NumberFormat({maximumFractionDigits: 2}).format,
+    percentageFormatter = function(value) {
+        return decimalFormatter(value * 100) + "%";
     },
-    percentageFormParse = function(str) {
+    percentageParser = function(str) {
         return Number(str.replace(/[^0-9^,]/g, "").replace(",", ".")) / 100
     },
     numberFormatter = Intl.NumberFormat().format,
@@ -537,8 +537,8 @@ var parameters = [
             sliderFormat: d3.format(".2%"),
         },
         form: {
-            format: percentageFormFormat,
-            parse: percentageFormParse,
+            format: percentageFormatter,
+            parse: percentageParser,
         },
     }),
     parameter("housePriceIncrease", {
@@ -549,8 +549,8 @@ var parameters = [
             sliderFormat: d3.format(".2%"),
         },
         form: {
-            format: percentageFormFormat,
-            parse: percentageFormParse,
+            format: percentageFormatter,
+            parse: percentageParser,
         },
     }),
     parameter("investmentReturn", {
@@ -561,8 +561,8 @@ var parameters = [
             sliderFormat: d3.format(".2%"),
         },
         form: {
-            format: percentageFormFormat,
-            parse: percentageFormParse,
+            format: percentageFormatter,
+            parse: percentageParser,
         },
     }),
     parameter("rentGrowth", {
@@ -573,8 +573,8 @@ var parameters = [
             sliderFormat: d3.format(".2%"),
         },
         form: {
-            format: percentageFormFormat,
-            parse: percentageFormParse,
+            format: percentageFormatter,
+            parse: percentageParser,
         },
     }),
     parameter("income0", {
@@ -597,6 +597,18 @@ var parameters = [
         },
         form: {
             format: moneyFormatter,
+        },
+    }),
+    parameter("ozbTarief", {
+        initialValue: input.ozbTarief,
+        graph: {
+            xScale: d3.scale.linear().domain([0, 0.05]).clamp(true),
+            xAxis: d3.svg.axis().tickFormat(d3.format("%")).ticks(5),
+            sliderFormat: d3.format(".2%"),
+        },
+        form: {
+            format: percentageFormatter,
+            parse: percentageParser,
         },
     }),
 ];
