@@ -309,7 +309,7 @@ var graph = function(options) {
         .orient("left")
         .ticks(4);
 
-    var svg = options.element //d3.select(options.id)
+    var svg = options.element
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
