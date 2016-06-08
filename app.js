@@ -82,12 +82,12 @@ var belasting = function () {
                 adjusted1 = income1;
             if(income0 < income1) {
                 var diff = Math.min(income1 - income0, mortgageRentaftrek);
-                adjusted0 -= diff + (mortgageRentaftrek - diff) / 2;
-                adjusted1 -= (mortgageRentaftrek - diff) / 2;
-            } else {
-                var diff = Math.min(income0 - income1, mortgageRentaftrek);
                 adjusted0 -= (mortgageRentaftrek - diff) / 2;
                 adjusted1 -= diff + (mortgageRentaftrek - diff) / 2;
+            } else {
+                var diff = Math.min(income0 - income1, mortgageRentaftrek);
+                adjusted0 -= diff + (mortgageRentaftrek - diff) / 2;
+                adjusted1 -= (mortgageRentaftrek - diff) / 2;
             }
             return box1(income0) + box1(income1) - box1(adjusted0) - box1(adjusted1);
         }
