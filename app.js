@@ -652,6 +652,6 @@ var outdatedGraphs = d3.set(),
 update();
 
 window.addEventListener("scroll", function() {
-    var offset = window.scrollY;
+    var offset = window.innerWidth > 991 ? window.scrollY : 0;
     d3.select("#calculation").style("padding-top", offset+"px");
 });
