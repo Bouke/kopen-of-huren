@@ -2,4 +2,4 @@
 
 To enable livereload and run a HTTP server:
 
-    livereload & python -m SimpleHTTPServer
+    python -c "from livereload import Server;server=Server();server.serve(port=8000,host='0.0.0.0')"
