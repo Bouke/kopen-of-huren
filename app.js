@@ -629,15 +629,24 @@ var parameters = [
     }),
 ];
 
-var update = function() {
-    var output = calculate(input);
-    tabulate(input, output);
-    labelize(input, output);
-
-    Object.keys(parameters).forEach(function(key) {
+var outdatedGraphs = d3.set(),
+    render = function() {
+        var key = outdatedGraphs.values()[0];
+        outdatedGraphs.remove(key);
         parameters[key].graph.update();
-    });
-};
+        if(!outdatedGraphs.empty()) {
+            window.requestAnimationFrame(render);
+        }
+    },
+    update = function() {
+        var output = calculate(input);
+        tabulate(input, output);
+        labelize(input, output);
+        Object.keys(parameters).forEach(function(key) {
+            outdatedGraphs.add(key);
+        });
+        window.requestAnimationFrame(render);
+    };
 
 update();
 
