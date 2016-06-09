@@ -313,6 +313,7 @@ var graph = function(options) {
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
             .attr("viewBox", "0 0 "+viewBoxWidth+" "+viewBoxHeight)
+            .attr("preserveAspectRatio", "xMidYMid meet")
         .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
             .style("pointer-events", "all");
