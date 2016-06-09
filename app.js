@@ -395,6 +395,22 @@ var graph = function(options) {
         svg.on("mouseout", clear);
     });
 
+    svg.on("touchstart", function() {
+        d3.event.preventDefault();
+        var touchmove = function() {
+            var sx = d3.touches(this)[0][0];
+            selectedValue = sliderPrecision(xScale.invert(sx));
+            renderSlider();
+            options.didMoveSlider(selectedValue);
+        }.bind(this);
+        touchmove();
+        svg.on("touchmove", touchmove);
+        svg.on("touchend", function() {
+            svg.on("touchmove", null);
+            svg.on("touchend", null);
+        });
+    });
+
     svg.append('rect')
         .attr('class', 'click-capture')
         .style('visibility', 'hidden')
